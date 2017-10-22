@@ -31,4 +31,5 @@ int main() {
 
   cudaCheckError();
   return 0;
-}
+
+
