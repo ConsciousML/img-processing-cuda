@@ -7,3 +7,6 @@ a List of algorithms of Image processing.
 ## Algorithms :
 ### Non local-mean-algorithm
 -https://en.wikipedia.org/wiki/Non-local_means
+### FFT algorithm
+-https://en.wikipedia.org/wiki/Fast_Fourier_transform
+
