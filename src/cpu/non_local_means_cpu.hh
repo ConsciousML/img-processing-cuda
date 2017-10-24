@@ -3,4 +3,4 @@
 #include "opencv2/imgproc/imgproc.hpp"
 #include "opencv2/highgui/highgui.hpp"
 
-cv::Mat non_local_means_cpu(cv::Mat image, int conv_size);
+cv::Mat non_local_means_cpu(cv::Mat image, int conv_size, float weight_decay);

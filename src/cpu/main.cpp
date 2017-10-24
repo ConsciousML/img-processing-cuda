@@ -1,4 +1,5 @@
 #include <iostream>
+#include <valarray>
 #include "opencv2/core/core.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 #include "opencv2/highgui/highgui.hpp"
@@ -9,9 +10,9 @@ using namespace cv;
 
 int main(int argc, char** argv)
 {
-    if (argc < 3)
+    if (argc < 4)
     {
-        printf("usage: main <Image_Path> <Conv_size>\n");
+        printf("usage: main <Image_Path> <Conv_size> <Weight_Decay_Param>\n");
         return 1;
     }
     Mat image;
@@ -22,7 +23,7 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    auto res = non_local_means_cpu(image, stoi(argv[2]));
+    auto res = non_local_means_cpu(image, stoi(argv[2]), stof(argv[3]));
 
     namedWindow("Display Window", CV_WINDOW_AUTOSIZE);
     imshow("Display Window", res);
