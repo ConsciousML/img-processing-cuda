@@ -3,6 +3,7 @@
 #include "opencv2/imgproc/imgproc.hpp"
 #include "opencv2/highgui/highgui.hpp"
 #include "non_local_means_cpu.hh"
+#include "utils.hh"
 using namespace std;
 using namespace cv;
 
