@@ -1,7 +1,6 @@
-
-
+SRC = main.cpp kernel.cu
+CFLAGS = -lcuda -lopencv_gpu -lopencv_core -lopencv_highgui
 all:
-	nvcc main.cu -arch=sm_61 -O3 -o a.out
-
+	nvcc $(SRC) -o main $(CFLAGS)
 clean:
-	rm -f a.out
+	rm -f main
