@@ -34,7 +34,7 @@ std::valarray<float> gauss_weight(Mat image, int y1, int x1, int y2, int x2, int
     auto b1 = conv(image, y1, x1, conv_size);
     auto b2 = conv(image, y2, x2, conv_size);
     std::valarray<float> res = {0, 0, 0};
-    res = std::exp(-(std::pow(std::abs(b1 - b2), 2) / (std::pow(stddev, 2) * weight_decay)));
+    res = std::exp(-(std::pow(std::abs(b1 - b2), 2) / (std::pow(stddev * weight_decay, 2))));
     return res;
 }
 
@@ -69,12 +69,22 @@ std::valarray<float> gauss_product(Mat image, Mat nlm_img, int y, int x, int con
     return sum;
 }
 
+float normalize_pixel(float pix)
+{
+    if (pix > 255)
+        return 255;
+    if (pix < 0)
+        return 0;
+    return pix;
+}
+
 Mat non_local_means_cpu(Mat image, int conv_size, float weight_decay)
 {
     auto nlm_img = image.clone();
     Scalar mean, stddev;
     cv::meanStdDev(image, mean, stddev);
     double stddev_val = stddev.val[0];
+    std::cout << "Standard Deviation: " << stddev_val << std::endl;
     for (int j = 0; j < nlm_img.cols; j++)
         for (int i = 0; i < nlm_img.rows; i++)
         {
@@ -86,6 +96,10 @@ Mat non_local_means_cpu(Mat image, int conv_size, float weight_decay)
 
             //sum(v(q) * f(p,q) / C(p)
             tmp /= cp_var;
+            tmp[0] = normalize_pixel(tmp[0]);
+            tmp[1] = normalize_pixel(tmp[1]);
+            tmp[2] = normalize_pixel(tmp[2]);
+
             nlm_img.at<cv::Vec3b>(j, i)[0] = (int)tmp[0];
             nlm_img.at<cv::Vec3b>(j, i)[1] = (int)tmp[1];
             nlm_img.at<cv::Vec3b>(j, i)[2] = (int)tmp[2];
