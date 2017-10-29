@@ -4,7 +4,6 @@
 #include "opencv2/core/core.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 #include "opencv2/highgui/highgui.hpp"
-/*#include "non_local_means_gpu.hh"*/
 #include "kernel.hh"
 
 
@@ -33,8 +32,9 @@ int main(int argc, char** argv)
             conv_image.at<cv::Vec3b>(j, i)[2] = res[2];
         }
     */
-    cv::namedWindow("Display Window", CV_WINDOW_AUTOSIZE);
-    cv::imshow("Display Window", image);
+    //conv(image);
+    //cv::namedWindow("Display Window", CV_WINDOW_AUTOSIZE);
+    //cv::imshow("Display Window", image);
     cv::waitKey(0);
     test_kernel();
     return 0;
