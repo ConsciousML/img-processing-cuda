@@ -23,28 +23,30 @@ struct Rgb {
 __global__ void kernel_conv(Rgb* device_img, Rgb* img, int rows, int cols, int conv_size)
 {
     int cnt = 0;
-    for (int y = 0; y < cols; y++)
-        for (int x = 0; x < rows; x++)
+    cnt = 0;
+    int x = blockIdx.x * blockDim.x + threadIdx.x;
+    int y = blockIdx.y * blockDim.y + threadIdx.y;
+
+    if (x >= rows || y >= cols)
+        return;
+
+    for (int i = y - conv_size; i < y + conv_size && i < cols; i++)
+        for (int j = x - conv_size; j < x + conv_size && j < rows; j++)
         {
-            cnt = 0;
-            for (int i = y - conv_size; i < y + conv_size && i < cols; i++)
-                for (int j = x - conv_size; j < x + conv_size && j < rows; j++)
-                {
-                    if (i >= 0 and j >= 0)
-                    {
-                        cnt++;
-                        device_img[x + y * rows].r += img[j + i * rows].r;
-                        device_img[x + y * rows].g += img[j + i * rows].g;
-                        device_img[x + y * rows].b += img[j + i * rows].b;
-                    }
-                }
-            if (cnt > 0)
+            if (i >= 0 and j >= 0)
             {
-                device_img[x + y * rows].r /= cnt;
-                device_img[x + y * rows].g /= cnt;
-                device_img[x + y * rows].b /= cnt;
+                cnt++;
+                device_img[x + y * rows].r += img[j + i * rows].r;
+                device_img[x + y * rows].g += img[j + i * rows].g;
+                device_img[x + y * rows].b += img[j + i * rows].b;
             }
         }
+    if (cnt > 0)
+    {
+        device_img[x + y * rows].r /= cnt;
+        device_img[x + y * rows].g /= cnt;
+        device_img[x + y * rows].b /= cnt;
+    }
 }
 
 Rgb *img_to_device(cv::Mat img)
@@ -106,19 +108,28 @@ int main(int argc, char** argv)
         return 1;
     }
 
+    int width = image.rows;
+    int height = image.cols;
 
     Rgb* device_dst = empty_img_device(image);
     Rgb* device_img = img_to_device(image);
+    Rgb* out = (Rgb*)malloc(width * height * sizeof (Rgb));
 
+    dim3 blockSize = dim3(16, 16);
+    int bx = (width + blockSize.x - 1) / blockSize.x;
+    int by = (height + blockSize.y - 1) / blockSize.y;
+    dim3 gridSize = dim3(bx, by);
 
-    kernel_conv<<<1, 1>>>(device_dst, device_img, image.rows, image.cols, std::stoi(argv[2]));
+    kernel_conv<<<gridSize, blockSize>>>(device_dst, device_img, width, height, std::stoi(argv[2]));
 
     cudaDeviceSynchronize();
+    cudaMemcpy(out, device_dst, height * width * sizeof (Rgb), cudaMemcpyDeviceToHost);
 
-    device_to_img(device_dst, image);
+    device_to_img(out, image);
 
     cudaFree(device_dst);
     cudaFree(device_img);
+    free(out);
 
     cv::namedWindow("Display Window", CV_WINDOW_AUTOSIZE);
     cv::imshow("Display Window", image);
