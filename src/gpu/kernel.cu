@@ -239,7 +239,7 @@ int main(int argc, char** argv)
         kernel_conv<<<gridSize, blockSize>>>(device_dst, device_img, width, height, std::stoi(argv[3]));
     else if (func_name == "shared_conv")
     {
-        dim3 block(20, 20);
+        dim3 block(16 + STREL_SIZE - 1, 16 + STREL_SIZE - 1);
         dim3 grid(width / (block.x) + block.x, height / (block.y) + block.y);
         kernel_shared_conv<<<grid, block>>>(device_dst, device_img, width, height);
     }
