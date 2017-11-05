@@ -5,11 +5,13 @@
 #include "opencv2/core/core.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 #include "opencv2/highgui/highgui.hpp"
+#define TILE_WIDTH 16
 
 struct Rgb {
-    Rgb(float x, float y, float z) : r(x), g(y), b(z) {}
-    Rgb(cv::Vec3b v) : r(v[0]), g(v[1]), b(v[2]) {}
-    void div(int x)
+    __host__ __device__ Rgb() {}
+    __host__ __device__ Rgb(float x, float y, float z) : r(x), g(y), b(z) {}
+    __host__ __device__ Rgb(cv::Vec3b v) : r(v[0]), g(v[1]), b(v[2]) {}
+    __host__ __device__ void div(int x)
     {
         r /= x;
         g /= x;
@@ -46,6 +48,37 @@ __global__ void kernel_conv(Rgb* device_img, Rgb* img, int rows, int cols, int c
         device_img[x + y * rows].r /= cnt;
         device_img[x + y * rows].g /= cnt;
         device_img[x + y * rows].b /= cnt;
+    }
+}
+
+__global__ void kernel_conv_shared(Rgb* device_img, Rgb* img, int rows, int cols, int conv_size)
+{
+    __shared__ Rgb ds_img[TILE_WIDTH][TILE_WIDTH];
+    int bx = blockIdx.x;
+    int by = blockIdx.y;
+    int tx = threadIdx.x;
+    int ty = threadIdx.y;
+    int dimx = blockDim.x;
+    int dimy = blockDim.y;
+    int x = bx * dimx + tx;
+    int y = by * dimy + ty;
+
+    for (int u = 0; u < rows / TILE_WIDTH + 1; u++)
+    {
+        for (int v = 0; v < cols / TILE_WIDTH + 1; v++)
+        {
+            if (u == bx && v == by)
+            {
+                auto elt = img[x + y * rows];
+                ds_img[ty][tx] = Rgb(elt.r, elt.g, elt.b);
+            }
+            __syncthreads();
+            auto elt = ds_img[ty][tx];
+            device_img[x + y * rows].r = elt.r;
+            device_img[x + y * rows].g = elt.g;
+            device_img[x + y * rows].b = elt.b;
+            __syncthreads();
+        }
     }
 }
 
@@ -120,7 +153,7 @@ int main(int argc, char** argv)
     int by = (height + blockSize.y - 1) / blockSize.y;
     dim3 gridSize = dim3(bx, by);
 
-    kernel_conv<<<gridSize, blockSize>>>(device_dst, device_img, width, height, std::stoi(argv[2]));
+    kernel_conv_shared<<<gridSize, blockSize>>>(device_dst, device_img, width, height, std::stoi(argv[2]));
 
     cudaDeviceSynchronize();
     cudaMemcpy(out, device_dst, height * width * sizeof (Rgb), cudaMemcpyDeviceToHost);
