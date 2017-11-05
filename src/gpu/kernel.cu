@@ -5,7 +5,9 @@
 #include "opencv2/core/core.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 #include "opencv2/highgui/highgui.hpp"
-#define TILE_WIDTH 3
+#define TILE_WIDTH_PIX 4
+#define TILE_WIDTH 16
+
 
 struct Rgb {
     __host__ __device__ Rgb() {}
@@ -51,9 +53,9 @@ __global__ void kernel_conv(Rgb* device_img, Rgb* img, int rows, int cols, int c
     }
 }
 
-__global__ void kernel_conv_shared(Rgb* device_img, Rgb* img, int rows, int cols, int conv_size)
+__global__ void kernel_pixelize(Rgb* device_img, Rgb* img, int rows, int cols, int conv_size)
 {
-    __shared__ Rgb ds_img[TILE_WIDTH][TILE_WIDTH];
+    __shared__ Rgb ds_img[TILE_WIDTH_PIX][TILE_WIDTH_PIX];
     int bx = blockIdx.x;
     int by = blockIdx.y;
     int tx = threadIdx.x;
@@ -67,9 +69,9 @@ __global__ void kernel_conv_shared(Rgb* device_img, Rgb* img, int rows, int cols
     if (x >= rows || y >= cols)
         return;
 
-    for (int u = 0; u < rows / TILE_WIDTH + 1; u++)
+    for (int u = 0; u < rows / TILE_WIDTH_PIX + 1; u++)
     {
-        for (int v = 0; v < cols / TILE_WIDTH + 1; v++)
+        for (int v = 0; v < cols / TILE_WIDTH_PIX + 1; v++)
         {
             if (u == bx and v == by)
             {
@@ -82,14 +84,14 @@ __global__ void kernel_conv_shared(Rgb* device_img, Rgb* img, int rows, int cols
                     for (int j = x - conv_size; j < x + conv_size && j < rows; j++)
                     {
                         if (i >= 0 and j >= 0
-                                and i >= v * TILE_WIDTH
-                                and i < (v + 1) * TILE_WIDTH
-                                and j >= u * TILE_WIDTH
-                                and j < (u + 1) * TILE_WIDTH)
+                                and i >= v * TILE_WIDTH_PIX
+                                and i < (v + 1) * TILE_WIDTH_PIX
+                                and j >= u * TILE_WIDTH_PIX
+                                and j < (u + 1) * TILE_WIDTH_PIX)
                         {
                             cnt++;
-                            int ds_x = j - u * TILE_WIDTH;
-                            int ds_y = i - v * TILE_WIDTH;
+                            int ds_x = j - u * TILE_WIDTH_PIX;
+                            int ds_y = i - v * TILE_WIDTH_PIX;
                             auto elt = ds_img[ds_y][ds_x];
                             device_img[x + y * rows].r += elt.r;
                             device_img[x + y * rows].g += elt.g;
@@ -152,9 +154,9 @@ Rgb *empty_img_device(cv::Mat img)
 
 int main(int argc, char** argv)
 {
-    if (argc < 3)
+    if (argc < 4)
     {
-        std::cout << "usage: main <Image_Path> <Conv_size>" << std::endl;
+        std::cout << "usage: main <Image_Path> <Func_name> <Conv_size>" << std::endl;
         return 1;
     }
     cv::Mat image;
@@ -165,6 +167,7 @@ int main(int argc, char** argv)
         return 1;
     }
 
+    std::string func_name = argv[2];
     int width = image.rows;
     int height = image.cols;
 
@@ -172,12 +175,27 @@ int main(int argc, char** argv)
     Rgb* device_img = img_to_device(image);
     Rgb* out = (Rgb*)malloc(width * height * sizeof (Rgb));
 
-    dim3 blockSize = dim3(TILE_WIDTH, TILE_WIDTH);
+    dim3 blockSize;
+    if (func_name == "pixelize")
+        blockSize = dim3(TILE_WIDTH_PIX, TILE_WIDTH_PIX);
+    else
+        blockSize = dim3(TILE_WIDTH, TILE_WIDTH);
     int bx = (width + blockSize.x - 1) / blockSize.x;
     int by = (height + blockSize.y - 1) / blockSize.y;
     dim3 gridSize = dim3(bx, by);
 
-    kernel_conv_shared<<<gridSize, blockSize>>>(device_dst, device_img, width, height, std::stoi(argv[2]));
+    if (func_name == "pixelize")
+        kernel_pixelize<<<gridSize, blockSize>>>(device_dst, device_img, width, height, std::stoi(argv[3]));
+    else if (func_name == "conv")
+        kernel_conv<<<gridSize, blockSize>>>(device_dst, device_img, width, height, std::stoi(argv[3]));
+    else
+    {
+        std::cout << "error: function name '" << func_name << "' is not known." << std::endl;
+        cudaFree(device_dst);
+        cudaFree(device_img);
+        free(out);
+        return 1;
+    }
 
     cudaDeviceSynchronize();
     cudaMemcpy(out, device_dst, height * width * sizeof (Rgb), cudaMemcpyDeviceToHost);
