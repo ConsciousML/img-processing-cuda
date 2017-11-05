@@ -62,24 +62,48 @@ __global__ void kernel_conv_shared(Rgb* device_img, Rgb* img, int rows, int cols
     int dimy = blockDim.y;
     int x = bx * dimx + tx;
     int y = by * dimy + ty;
+    int cnt = 0;
+
+    if (x >= rows || y >= cols)
+        return;
 
     for (int u = 0; u < rows / TILE_WIDTH + 1; u++)
     {
         for (int v = 0; v < cols / TILE_WIDTH + 1; v++)
         {
-            if (u == bx && v == by)
+            if (u == bx and v == by)
             {
                 auto elt = img[x + y * rows];
                 ds_img[ty][tx] = Rgb(elt.r, elt.g, elt.b);
             }
             __syncthreads();
-            auto elt = ds_img[ty][tx];
-            device_img[x + y * rows].r = elt.r;
-            device_img[x + y * rows].g = elt.g;
-            device_img[x + y * rows].b = elt.b;
+
+            for (int i = y - conv_size; i < y + conv_size && i < cols; i++)
+            {
+                for (int j = x - conv_size; j < x + conv_size && j < rows; j++)
+                {
+                    if (i >= 0 and j >= 0
+                            and i >= v * TILE_WIDTH
+                            and i < (v + 1) * TILE_WIDTH
+                            and j >= u * TILE_WIDTH
+                            and j < (u + 1) * TILE_WIDTH)
+                    {
+                        cnt++;
+                        int ds_x = j - u * TILE_WIDTH;
+                        int ds_y = i - v * TILE_WIDTH;
+                        auto elt = ds_img[ds_y][ds_x];
+                        device_img[x + y * rows].r += elt.r;
+                        device_img[x + y * rows].g += elt.g;
+                        device_img[x + y * rows].b += elt.b;
+                    }
+                }
+            }
             __syncthreads();
         }
     }
+    device_img[x + y * rows].r /= cnt;
+    device_img[x + y * rows].g /= cnt;
+    device_img[x + y * rows].b /= cnt;
 }
 
 Rgb *img_to_device(cv::Mat img)
