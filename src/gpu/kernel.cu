@@ -5,9 +5,16 @@
 #include "opencv2/core/core.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 #include "opencv2/highgui/highgui.hpp"
-#define TILE_WIDTH_PIX 4
-#define TILE_WIDTH 16
 
+#define TILE_WIDTH_PIX 4
+
+#define TILE_WIDTH 16
+#define TILE_HEIGHT 16
+
+#define STREL_SIZE 5
+#define R (STREL_SIZE / 2)
+#define BLOCK_W (TILE_WIDTH + (2 * R))
+#define BLOCK_H (TILE_HEIGHT + (2 * R))
 
 struct Rgb {
     __host__ __device__ Rgb() {}
@@ -24,6 +31,48 @@ struct Rgb {
     float b;
 };
 
+__global__ void kernel_shared_conv(Rgb* device_img, Rgb* img, int width, int height)
+{
+    __shared__ Rgb fast_acc_mat[BLOCK_W][BLOCK_H];
+    int ty = threadIdx.y;
+    int tx = threadIdx.x;
+    int row_o = blockIdx.y * TILE_WIDTH + ty;
+    int col_o = blockIdx.x * TILE_HEIGHT + tx;
+    int row_i = row_o - R;
+    int col_i = col_o - R;
+
+    if ((row_i >= 0) && (row_i < height) && (col_i >= 0) && (col_i < width))
+    {
+        auto elt = img[row_i * width + col_i];
+        fast_acc_mat[ty][tx] = Rgb(elt.r, elt.g, elt.b);
+    }
+    else
+        fast_acc_mat[ty][tx] = Rgb(0, 0, 0);
+    __syncthreads();
+
+    if (ty < TILE_HEIGHT && tx < TILE_WIDTH)
+    {
+        auto sum = Rgb(0, 0, 0);
+        int cnt = 0;
+        for (int i = 0; i < STREL_SIZE; i++)
+        {
+            for (int j = 0; j < STREL_SIZE; j++)
+            {
+                cnt++;
+                sum.r += fast_acc_mat[i + ty][j + tx].r;
+                sum.g += fast_acc_mat[i + ty][j + tx].g;
+                sum.b += fast_acc_mat[i + ty][j + tx].b;
+            }
+        }
+        if (row_o < height && col_o < width)
+        {
+            sum.r /= cnt;
+            sum.g /= cnt;
+            sum.b /= cnt;
+            device_img[row_o * width + col_o] = sum;
+        }
+    }
+}
 __global__ void kernel_conv(Rgb* device_img, Rgb* img, int rows, int cols, int conv_size)
 {
     int cnt = 0;
@@ -188,6 +237,12 @@ int main(int argc, char** argv)
         kernel_pixelize<<<gridSize, blockSize>>>(device_dst, device_img, width, height, std::stoi(argv[3]));
     else if (func_name == "conv")
         kernel_conv<<<gridSize, blockSize>>>(device_dst, device_img, width, height, std::stoi(argv[3]));
+    else if (func_name == "shared_conv")
+    {
+        dim3 block(20, 20);
+        dim3 grid(width / (block.x) + block.x, height / (block.y) + block.y);
+        kernel_shared_conv<<<grid, block>>>(device_dst, device_img, width, height);
+    }
     else
     {
         std::cout << "error: function name '" << func_name << "' is not known." << std::endl;
