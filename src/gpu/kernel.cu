@@ -5,7 +5,7 @@
 #include "opencv2/core/core.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 #include "opencv2/highgui/highgui.hpp"
-#define TILE_WIDTH 16
+#define TILE_WIDTH 3
 
 struct Rgb {
     __host__ __device__ Rgb() {}
@@ -75,30 +75,30 @@ __global__ void kernel_conv_shared(Rgb* device_img, Rgb* img, int rows, int cols
             {
                 auto elt = img[x + y * rows];
                 ds_img[ty][tx] = Rgb(elt.r, elt.g, elt.b);
-            }
-            __syncthreads();
+                __syncthreads();
 
-            for (int i = y - conv_size; i < y + conv_size && i < cols; i++)
-            {
-                for (int j = x - conv_size; j < x + conv_size && j < rows; j++)
+                for (int i = y - conv_size; i < y + conv_size && i < cols; i++)
                 {
-                    if (i >= 0 and j >= 0
-                            and i >= v * TILE_WIDTH
-                            and i < (v + 1) * TILE_WIDTH
-                            and j >= u * TILE_WIDTH
-                            and j < (u + 1) * TILE_WIDTH)
+                    for (int j = x - conv_size; j < x + conv_size && j < rows; j++)
                     {
-                        cnt++;
-                        int ds_x = j - u * TILE_WIDTH;
-                        int ds_y = i - v * TILE_WIDTH;
-                        auto elt = ds_img[ds_y][ds_x];
-                        device_img[x + y * rows].r += elt.r;
-                        device_img[x + y * rows].g += elt.g;
-                        device_img[x + y * rows].b += elt.b;
+                        if (i >= 0 and j >= 0
+                                and i >= v * TILE_WIDTH
+                                and i < (v + 1) * TILE_WIDTH
+                                and j >= u * TILE_WIDTH
+                                and j < (u + 1) * TILE_WIDTH)
+                        {
+                            cnt++;
+                            int ds_x = j - u * TILE_WIDTH;
+                            int ds_y = i - v * TILE_WIDTH;
+                            auto elt = ds_img[ds_y][ds_x];
+                            device_img[x + y * rows].r += elt.r;
+                            device_img[x + y * rows].g += elt.g;
+                            device_img[x + y * rows].b += elt.b;
+                        }
                     }
                 }
+                __syncthreads();
             }
-            __syncthreads();
         }
     }
     device_img[x + y * rows].r /= cnt;
@@ -172,7 +172,7 @@ int main(int argc, char** argv)
     Rgb* device_img = img_to_device(image);
     Rgb* out = (Rgb*)malloc(width * height * sizeof (Rgb));
 
-    dim3 blockSize = dim3(16, 16);
+    dim3 blockSize = dim3(TILE_WIDTH, TILE_WIDTH);
     int bx = (width + blockSize.x - 1) / blockSize.x;
     int by = (height + blockSize.y - 1) / blockSize.y;
     dim3 gridSize = dim3(bx, by);
