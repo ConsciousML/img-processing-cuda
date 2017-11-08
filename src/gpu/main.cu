@@ -6,7 +6,6 @@
 #include "opencv2/imgproc/imgproc.hpp"
 #include "opencv2/highgui/highgui.hpp"
 #include "kernel.cuh"
-#define TILE_WIDTH_PIX 4
 #define TILE_WIDTH 16
 #define TILE_HEIGHT 16
 #define STREL_SIZE 5
@@ -39,7 +38,7 @@ int main(int argc, char** argv)
 
     dim3 blockSize;
     if (func_name == "pixelize")
-        blockSize = dim3(TILE_WIDTH_PIX, TILE_WIDTH_PIX);
+        blockSize = dim3(std::stoi(argv[3]), std::stoi(argv[3]));
     else
         blockSize = dim3(TILE_WIDTH, TILE_WIDTH);
     int bx = (width + blockSize.x - 1) / blockSize.x;
@@ -47,7 +46,7 @@ int main(int argc, char** argv)
     dim3 gridSize = dim3(bx, by);
 
     if (func_name == "pixelize")
-        kernel_pixelize<<<gridSize, blockSize>>>(device_dst, device_img, width, height, std::stoi(argv[3]));
+        kernel_pixelize<<<gridSize, blockSize, std::stoi(argv[3]) * std::stoi(argv[3]) * sizeof (Rgb)>>>(device_dst, device_img, width, height, std::stoi(argv[3]));
     else if (func_name == "conv")
         kernel_conv<<<gridSize, blockSize>>>(device_dst, device_img, width, height, std::stoi(argv[3]));
     else if (func_name == "shared_conv")

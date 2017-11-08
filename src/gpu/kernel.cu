@@ -6,7 +6,6 @@
 #include "opencv2/imgproc/imgproc.hpp"
 #include "opencv2/highgui/highgui.hpp"
 
-#define TILE_WIDTH_PIX 4
 
 #define TILE_WIDTH 16
 #define TILE_HEIGHT 16
@@ -103,9 +102,9 @@ __global__ void kernel_conv(Rgb* device_img, Rgb* img, int rows, int cols, int c
     }
 }
 
-__global__ void kernel_pixelize(Rgb* device_img, Rgb* img, int rows, int cols, int conv_size)
+__global__ void kernel_pixelize(Rgb* device_img, Rgb* img, int rows, int cols, int TILE_WIDTH_PIX)
 {
-    __shared__ Rgb ds_img[TILE_WIDTH_PIX][TILE_WIDTH_PIX];
+    extern __shared__ Rgb ds_img[];
     int bx = blockIdx.x;
     int by = blockIdx.y;
     int tx = threadIdx.x;
@@ -126,12 +125,12 @@ __global__ void kernel_pixelize(Rgb* device_img, Rgb* img, int rows, int cols, i
             if (u == bx and v == by)
             {
                 auto elt = img[x + y * rows];
-                ds_img[ty][tx] = Rgb(elt.r, elt.g, elt.b);
+                ds_img[ty * TILE_WIDTH_PIX + tx] = Rgb(elt.r, elt.g, elt.b);
                 __syncthreads();
 
-                for (int i = y - conv_size; i < y + conv_size && i < cols; i++)
+                for (int i = y - TILE_WIDTH_PIX; i < y + TILE_WIDTH_PIX && i < cols; i++)
                 {
-                    for (int j = x - conv_size; j < x + conv_size && j < rows; j++)
+                    for (int j = x - TILE_WIDTH_PIX; j < x + TILE_WIDTH_PIX && j < rows; j++)
                     {
                         if (i >= 0 and j >= 0
                                 and i >= v * TILE_WIDTH_PIX
@@ -142,7 +141,7 @@ __global__ void kernel_pixelize(Rgb* device_img, Rgb* img, int rows, int cols, i
                             cnt++;
                             int ds_x = j - u * TILE_WIDTH_PIX;
                             int ds_y = i - v * TILE_WIDTH_PIX;
-                            auto elt = ds_img[ds_y][ds_x];
+                            auto elt = ds_img[ds_y * TILE_WIDTH_PIX + ds_x];
                             device_img[x + y * rows].r += elt.r;
                             device_img[x + y * rows].g += elt.g;
                             device_img[x + y * rows].b += elt.b;
