@@ -102,7 +102,7 @@ __global__ void kernel_conv(Rgb* device_img, Rgb* img, int rows, int cols, int c
     }
 }
 
-__global__ void kernel_pixelize(Rgb* device_img, Rgb* img, int rows, int cols, int TILE_WIDTH_PIX)
+__global__ void kernel_pixelize(Rgb* device_img, Rgb* img, int rows, int cols, int pix_size)
 {
     extern __shared__ Rgb ds_img[];
     int bx = blockIdx.x;
@@ -118,30 +118,30 @@ __global__ void kernel_pixelize(Rgb* device_img, Rgb* img, int rows, int cols, i
     if (x >= rows || y >= cols)
         return;
 
-    for (int u = 0; u < rows / TILE_WIDTH_PIX + 1; u++)
+    for (int u = 0; u < rows / pix_size + 1; u++)
     {
-        for (int v = 0; v < cols / TILE_WIDTH_PIX + 1; v++)
+        for (int v = 0; v < cols / pix_size + 1; v++)
         {
             if (u == bx and v == by)
             {
                 auto elt = img[x + y * rows];
-                ds_img[ty * TILE_WIDTH_PIX + tx] = Rgb(elt.r, elt.g, elt.b);
+                ds_img[ty * pix_size + tx] = Rgb(elt.r, elt.g, elt.b);
                 __syncthreads();
 
-                for (int i = y - TILE_WIDTH_PIX; i < y + TILE_WIDTH_PIX && i < cols; i++)
+                for (int i = y - pix_size; i < y + pix_size && i < cols; i++)
                 {
-                    for (int j = x - TILE_WIDTH_PIX; j < x + TILE_WIDTH_PIX && j < rows; j++)
+                    for (int j = x - pix_size; j < x + pix_size && j < rows; j++)
                     {
                         if (i >= 0 and j >= 0
-                                and i >= v * TILE_WIDTH_PIX
-                                and i < (v + 1) * TILE_WIDTH_PIX
-                                and j >= u * TILE_WIDTH_PIX
-                                and j < (u + 1) * TILE_WIDTH_PIX)
+                                and i >= v * pix_size
+                                and i < (v + 1) * pix_size
+                                and j >= u * pix_size
+                                and j < (u + 1) * pix_size)
                         {
                             cnt++;
-                            int ds_x = j - u * TILE_WIDTH_PIX;
-                            int ds_y = i - v * TILE_WIDTH_PIX;
-                            auto elt = ds_img[ds_y * TILE_WIDTH_PIX + ds_x];
+                            int ds_x = j - u * pix_size;
+                            int ds_y = i - v * pix_size;
+                            auto elt = ds_img[ds_y * pix_size + ds_x];
                             device_img[x + y * rows].r += elt.r;
                             device_img[x + y * rows].g += elt.g;
                             device_img[x + y * rows].b += elt.b;

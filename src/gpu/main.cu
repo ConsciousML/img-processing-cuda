@@ -31,6 +31,7 @@ int main(int argc, char** argv)
     std::string func_name = argv[2];
     int width = image.rows;
     int height = image.cols;
+    int pix_size = 0;
 
     Rgb* device_dst = empty_img_device(image);
     Rgb* device_img = img_to_device(image);
@@ -38,7 +39,10 @@ int main(int argc, char** argv)
 
     dim3 blockSize;
     if (func_name == "pixelize")
-        blockSize = dim3(std::stoi(argv[3]), std::stoi(argv[3]));
+    {
+        pix_size = std::stoi(argv[3]);
+        blockSize = dim3(pix_size, pix_size);
+    }
     else
         blockSize = dim3(TILE_WIDTH, TILE_WIDTH);
     int bx = (width + blockSize.x - 1) / blockSize.x;
@@ -46,7 +50,7 @@ int main(int argc, char** argv)
     dim3 gridSize = dim3(bx, by);
 
     if (func_name == "pixelize")
-        kernel_pixelize<<<gridSize, blockSize, std::stoi(argv[3]) * std::stoi(argv[3]) * sizeof (Rgb)>>>(device_dst, device_img, width, height, std::stoi(argv[3]));
+        kernel_pixelize<<<gridSize, blockSize, pix_size * pix_size * sizeof (Rgb)>>>(device_dst, device_img, width, height, pix_size);
     else if (func_name == "conv")
         kernel_conv<<<gridSize, blockSize>>>(device_dst, device_img, width, height, std::stoi(argv[3]));
     else if (func_name == "shared_conv")
