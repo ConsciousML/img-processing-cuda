@@ -16,6 +16,7 @@
 #define BLOCK_H (TILE_HEIGHT + (2 * R))
 
 
+
 struct Rgb {
     __host__ __device__ Rgb() {}
     __host__ __device__ Rgb(float x, float y, float z) : r(x), g(y), b(z) {}
@@ -31,6 +32,10 @@ struct Rgb {
     float b;
 };
 
+void non_local_means_gpu(Rgb* device_img, Rgb* img, int conv_size, float weight_decay)
+{
+
+}
 __global__ void kernel_shared_conv(Rgb* device_img, Rgb* img, int width, int height)
 {
     __shared__ Rgb fast_acc_mat[BLOCK_W][BLOCK_H];
