@@ -10,46 +10,48 @@
 #define TILE_WIDTH 16
 #define TILE_HEIGHT 16
 
-#define STREL_SIZE 5
-#define R (STREL_SIZE / 2)
-#define BLOCK_W (TILE_WIDTH + (2 * R))
-#define BLOCK_H (TILE_HEIGHT + (2 * R))
+//#define STREL_SIZE 5
+//#define R (STREL_SIZE / 2)
+//#define BLOCK_W (TILE_WIDTH + (2 * R))
+//#define BLOCK_H (TILE_HEIGHT + (2 * R))
 
 __global__ void non_local_means_gpu(Rgb* device_img, Rgb* img, int conv_size, float weight_decay)
 {
 
 }
-__global__ void kernel_shared_conv(Rgb* device_img, Rgb* img, int width, int height, int conv_size)
+__global__ void kernel_shared_conv(Rgb* device_img, Rgb* img, int width, int height, int strel_size)
 {
-    __shared__ Rgb fast_acc_mat[BLOCK_W][BLOCK_H];
+    int r = strel_size / 2;
+    int block_w = TILE_WIDTH + 2 * r;
+    extern __shared__ Rgb fast_acc_mat[];
     int ty = threadIdx.y;
     int tx = threadIdx.x;
     int row_o = blockIdx.y * TILE_WIDTH + ty;
     int col_o = blockIdx.x * TILE_HEIGHT + tx;
-    int row_i = row_o - R;
-    int col_i = col_o - R;
+    int row_i = row_o - r;
+    int col_i = col_o - r;
 
     if ((row_i >= 0) && (row_i < height) && (col_i >= 0) && (col_i < width))
     {
         auto elt = img[row_i * width + col_i];
-        fast_acc_mat[ty][tx] = Rgb(elt.r, elt.g, elt.b);
+        fast_acc_mat[ty * block_w + tx] = Rgb(elt.r, elt.g, elt.b);
     }
     else
-        fast_acc_mat[ty][tx] = Rgb(0, 0, 0);
+        fast_acc_mat[ty * block_w + tx] = Rgb(0, 0, 0);
     __syncthreads();
 
     if (ty < TILE_HEIGHT && tx < TILE_WIDTH)
     {
         auto sum = Rgb(0, 0, 0);
         int cnt = 0;
-        for (int i = 0; i < STREL_SIZE; i++)
+        for (int i = 0; i < strel_size; i++)
         {
-            for (int j = 0; j < STREL_SIZE; j++)
+            for (int j = 0; j < strel_size; j++)
             {
                 cnt++;
-                sum.r += fast_acc_mat[i + ty][j + tx].r;
-                sum.g += fast_acc_mat[i + ty][j + tx].g;
-                sum.b += fast_acc_mat[i + ty][j + tx].b;
+                sum.r += fast_acc_mat[(i + ty) * block_w + j + tx].r;
+                sum.g += fast_acc_mat[(i + ty) * block_w + j + tx].g;
+                sum.b += fast_acc_mat[(i + ty) * block_w + j + tx].b;
             }
         }
         if (row_o < height && col_o < width)
