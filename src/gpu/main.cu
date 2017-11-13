@@ -21,6 +21,12 @@ int main(int argc, char** argv)
         std::cout << "usage: main <Image_Path> <Func_name> <Conv_size>" << std::endl;
         return 1;
     }
+    std::string func_name = argv[2];
+    if (func_name == "nlm" && argc < 5)
+    {
+        std::cout << "usage: main <Image_Path> nlm <Conv_size> <Weight_Decay_Param>" << std::endl;
+        return 1;
+    }
     cv::Mat image;
     image = cv::imread(argv[1], CV_LOAD_IMAGE_UNCHANGED);
     if (!image.data)
@@ -29,48 +35,21 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    std::string func_name = argv[2];
     int width = image.rows;
     int height = image.cols;
-    int pix_size = 0;
 
     Rgb* device_dst = empty_img_device(image);
     Rgb* device_img = img_to_device(image);
     Rgb* out = (Rgb*)malloc(width * height * sizeof (Rgb));
 
-    dim3 blockSize;
     if (func_name == "pixelize")
-    {
-        pix_size = std::stoi(argv[3]);
-        blockSize = dim3(pix_size, pix_size);
-    }
-    else
-        blockSize = dim3(TILE_WIDTH, TILE_WIDTH);
-    int bx = (width + blockSize.x - 1) / blockSize.x;
-    int by = (height + blockSize.y - 1) / blockSize.y;
-    dim3 gridSize = dim3(bx, by);
-
-    if (func_name == "pixelize")
-        kernel_pixelize<<<gridSize, blockSize, pix_size * pix_size * sizeof (Rgb)>>>(device_dst, device_img, width, height, pix_size);
-	//kernel_pixelize_host(device_dst, device_img, width, height, pix_size);
-    /*
+        kernel_pixelize_host(device_dst, device_img, width, height, std::stoi(argv[3]));
     else if (func_name == "conv")
-        kernel_conv<<<gridSize, blockSize>>>(device_dst, device_img, width, height, std::stoi(argv[3]));
+        kernel_conv_host(device_dst, device_img, width, height, std::stoi(argv[3]));
     else if (func_name == "shared_conv")
-    {
-        dim3 block(16 + STREL_SIZE - 1, 16 + STREL_SIZE - 1);
-        dim3 grid(width / (block.x) + block.x, height / (block.y) + block.y);
-        kernel_shared_conv<<<grid, block>>>(device_dst, device_img, width, height, std::stoi(argv[3]));
-    }
+        kernel_shared_conv_host(device_dst, device_img, width, height, std::stoi(argv[3]));
     else if (func_name == "nlm")
-    {
-        if (argc < 5)
-        {
-            std::cout << "usage: main <Image_Path> nlm <Conv_size> <Weight_Decay_Param>" << std::endl;
-            return 1;
-        }
-        non_local_means_gpu<<<gridSize, blockSize>>>(device_dst, device_img, std::stoi(argv[3]), std::stoi(argv[4]));
-    }
+        kernel_non_local_means_host(device_dst, device_img, width, height, std::stoi(argv[3]), std::stoi(argv[4]));
     else
     {
         std::cout << "error: function name '" << func_name << "' is not known." << std::endl;
@@ -78,7 +57,7 @@ int main(int argc, char** argv)
         cudaFree(device_img);
         free(out);
         return 1;
-    }*/
+    }
 
     cudaDeviceSynchronize();
     cudaMemcpy(out, device_dst, height * width * sizeof (Rgb), cudaMemcpyDeviceToHost);
