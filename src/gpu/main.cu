@@ -5,7 +5,8 @@
 #include "opencv2/core/core.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 #include "opencv2/highgui/highgui.hpp"
-#include "kernel.cuh"
+//#include "kernel.cuh"
+#include "kernelcall.cuh"
 #define TILE_WIDTH 16
 #define TILE_HEIGHT 16
 #define STREL_SIZE 5
@@ -51,13 +52,15 @@ int main(int argc, char** argv)
 
     if (func_name == "pixelize")
         kernel_pixelize<<<gridSize, blockSize, pix_size * pix_size * sizeof (Rgb)>>>(device_dst, device_img, width, height, pix_size);
+	//kernel_pixelize_host(device_dst, device_img, width, height, pix_size);
+    /*
     else if (func_name == "conv")
         kernel_conv<<<gridSize, blockSize>>>(device_dst, device_img, width, height, std::stoi(argv[3]));
     else if (func_name == "shared_conv")
     {
         dim3 block(16 + STREL_SIZE - 1, 16 + STREL_SIZE - 1);
         dim3 grid(width / (block.x) + block.x, height / (block.y) + block.y);
-        kernel_shared_conv<<<grid, block>>>(device_dst, device_img, width, height);
+        kernel_shared_conv<<<grid, block>>>(device_dst, device_img, width, height, std::stoi(argv[3]));
     }
     else if (func_name == "nlm")
     {
@@ -75,7 +78,7 @@ int main(int argc, char** argv)
         cudaFree(device_img);
         free(out);
         return 1;
-    }
+    }*/
 
     cudaDeviceSynchronize();
     cudaMemcpy(out, device_dst, height * width * sizeof (Rgb), cudaMemcpyDeviceToHost);

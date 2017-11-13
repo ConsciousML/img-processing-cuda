@@ -5,7 +5,7 @@
 #include "opencv2/core/core.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 #include "opencv2/highgui/highgui.hpp"
-
+#include "kernel.cuh"
 
 #define TILE_WIDTH 16
 #define TILE_HEIGHT 16
@@ -15,28 +15,11 @@
 #define BLOCK_W (TILE_WIDTH + (2 * R))
 #define BLOCK_H (TILE_HEIGHT + (2 * R))
 
-
-
-struct Rgb {
-    __host__ __device__ Rgb() {}
-    __host__ __device__ Rgb(float x, float y, float z) : r(x), g(y), b(z) {}
-    __host__ __device__ Rgb(cv::Vec3b v) : r(v[0]), g(v[1]), b(v[2]) {}
-    __host__ __device__ void div(int x)
-    {
-        r /= x;
-        g /= x;
-        b /= x;
-    }
-    float r;
-    float g;
-    float b;
-};
-
-void non_local_means_gpu(Rgb* device_img, Rgb* img, int conv_size, float weight_decay)
+__global__ void non_local_means_gpu(Rgb* device_img, Rgb* img, int conv_size, float weight_decay)
 {
 
 }
-__global__ void kernel_shared_conv(Rgb* device_img, Rgb* img, int width, int height)
+__global__ void kernel_shared_conv(Rgb* device_img, Rgb* img, int width, int height, int conv_size)
 {
     __shared__ Rgb fast_acc_mat[BLOCK_W][BLOCK_H];
     int ty = threadIdx.y;
@@ -160,49 +143,5 @@ __global__ void kernel_pixelize(Rgb* device_img, Rgb* img, int rows, int cols, i
     device_img[x + y * rows].r /= cnt;
     device_img[x + y * rows].g /= cnt;
     device_img[x + y * rows].b /= cnt;
-}
-
-Rgb *img_to_device(cv::Mat img)
-{
-    Rgb *device_img;
-    int width = img.rows;
-    int height = img.cols;
-    cudaMallocManaged(&device_img, width * height * sizeof (Rgb));
-
-    for (int i = 0; i < height; i++)
-        for (int j = 0; j < width; j++)
-            device_img[j + i * width] = Rgb(img.at<cv::Vec3b>(j, i));
-
-    return device_img;
-}
-
-void device_to_img(Rgb *device_img, cv::Mat& img)
-{
-    int width = img.rows;
-    int height = img.cols;
-    std::cout << width * height << std::endl;
-
-    for (int i = 0; i < height; i++)
-        for (int j = 0; j < width; j++)
-        {
-            img.at<cv::Vec3b>(j, i)[0] = (int)device_img[j + i * width].r;
-            img.at<cv::Vec3b>(j, i)[1] = (int)device_img[j + i * width].g;
-            img.at<cv::Vec3b>(j, i)[2] = (int)device_img[j + i * width].b;
-
-        }
-}
-
-Rgb *empty_img_device(cv::Mat img)
-{
-    Rgb *device_img;
-    int width = img.rows;
-    int height = img.cols;
-    cudaMallocManaged(&device_img, width * height * sizeof (Rgb));
-
-    for (int i = 0; i < height; i++)
-        for (int j = 0; j < width; j++)
-            device_img[j + i * width] = Rgb(0.0, 0.0, 0.0);
-
-    return device_img;
 }
 

@@ -18,12 +18,9 @@ struct Rgb {
 };
 
 __global__ void non_local_means_gpu(Rgb* device_img, Rgb* img, int conv_size, float weight_decay);
-__global__ void kernel_shared_conv(Rgb* device_img, Rgb* img, int width, int height);
+__global__ void kernel_shared_conv(Rgb* device_img, Rgb* img, int width, int height, int conv_size);
 __global__ void kernel_conv(Rgb* device_img, Rgb* img, int rows, int cols, int conv_size);
 __global__ void kernel_pixelize(Rgb* device_img, Rgb* img, int rows, int cols, int conv_size);
-Rgb *img_to_device(cv::Mat img);
-void device_to_img(Rgb *device_img, cv::Mat& img);
-Rgb *empty_img_device(cv::Mat img);
 
 
 
