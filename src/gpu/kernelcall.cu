@@ -62,6 +62,12 @@ Rgb *empty_img_device(cv::Mat img)
 
 void kernel_shared_conv_host(Rgb* device_img, Rgb* img, int width, int height, int strel_size)
 {
+    if (strel_size <= 0 or strel_size > 16)
+    {
+        std::cout << "\nerror: <Strel_size> parameter must be between 1 and 16 due to shared memory constaint.\n" << std::endl;
+        assert(strel_size > 0 and strel_size < 16);
+        return;
+    }
     int r = strel_size / 2;
     int block_w = TILE_WIDTH + 2 * r;
     dim3 blockSize = dim3(block_w, block_w);
@@ -73,6 +79,12 @@ void kernel_shared_conv_host(Rgb* device_img, Rgb* img, int width, int height, i
 
 void kernel_conv_host(Rgb* device_img, Rgb* img, int width, int height, int conv_size)
 {
+    if (conv_size <= 0)
+    {
+        std::cout << "\nerror: <Conv_size> parameter must be strictly greater than 0.\n" << std::endl;
+        assert(conv_size > 0);
+        return;
+    }
     dim3 blockSize = dim3(TILE_WIDTH, TILE_WIDTH);
     int bx = (width + blockSize.x - 1) / blockSize.x;
     int by = (height + blockSize.y - 1) / blockSize.y;
@@ -82,6 +94,12 @@ void kernel_conv_host(Rgb* device_img, Rgb* img, int width, int height, int conv
 
 void kernel_pixelize_host(Rgb* device_img, Rgb* img, int width, int height, int pix_size)
 {
+    if (pix_size <= 1 or pix_size > 32)
+    {
+        std::cout << "\nerror: <Pix_size> parameter must be between 2 and 32 included.\n" << std::endl;
+        assert(pix_size > 1 and pix_size < 33);
+        return;
+    }
     dim3 blockSize = dim3(pix_size, pix_size);
     int bx = (width + blockSize.x - 1) / blockSize.x;
     int by = (height + blockSize.y - 1) / blockSize.y;
