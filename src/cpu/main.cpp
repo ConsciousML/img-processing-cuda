@@ -4,15 +4,15 @@
 #include "opencv2/imgproc/imgproc.hpp"
 #include "opencv2/highgui/highgui.hpp"
 #include "non_local_means_cpu.hh"
-#include "utils.hh"
+#include "knn.hh"
 using namespace std;
 using namespace cv;
 
 int main(int argc, char** argv)
 {
-    if (argc < 4)
+    if (argc < 5)
     {
-        printf("usage: main <Image_Path> <Conv_size> <Weight_Decay_Param>\n");
+        printf("usage: main <Image_Path> <Func_name> <Conv_size> <Weight_Decay_Param>\n");
         return 1;
     }
     Mat image;
@@ -23,10 +23,15 @@ int main(int argc, char** argv)
         return 1;
     }
 
-    auto res = non_local_means_cpu(image, stoi(argv[2]), stof(argv[3]));
-
+    Mat res;
+    string func_name = argv[2];
+    if (func_name == "nlm")
+        res = non_local_means_cpu(image, stoi(argv[3]), stof(argv[4]));
+    else if (func_name == "knn")
+        res = knn(image, stoi(argv[3]), stof(argv[4]));
     namedWindow("Display Window", CV_WINDOW_AUTOSIZE);
     imshow("Display Window", res);
     waitKey(0);
+    imwrite("output.jpg", res);
     return 0;
 }

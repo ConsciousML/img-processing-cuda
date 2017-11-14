@@ -22,9 +22,9 @@ int main(int argc, char** argv)
         return 1;
     }
     std::string func_name = argv[2];
-    if (func_name == "nlm" && argc < 5)
+    if (func_name == "knn" && argc < 5)
     {
-        std::cout << "usage: main <Image_Path> nlm <Conv_size> <Weight_Decay_Param>" << std::endl;
+        std::cout << "usage: main <Image_Path> knn <Conv_size> <Weight_Decay_Param>" << std::endl;
         return 1;
     }
     cv::Mat image;
@@ -48,8 +48,8 @@ int main(int argc, char** argv)
         kernel_conv_host(device_dst, device_img, width, height, std::stoi(argv[3]));
     else if (func_name == "shared_conv")
         kernel_shared_conv_host(device_dst, device_img, width, height, std::stoi(argv[3]));
-    else if (func_name == "nlm")
-        kernel_non_local_means_host(device_dst, device_img, width, height, std::stoi(argv[3]), std::stoi(argv[4]));
+    else if (func_name == "knn")
+        kernel_knn_host(device_dst, device_img, width, height, std::stoi(argv[3]), std::stoi(argv[4]));
     else
     {
         std::cout << "error: function name '" << func_name << "' is not known." << std::endl;

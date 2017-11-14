@@ -107,11 +107,11 @@ void kernel_pixelize_host(Rgb* device_img, Rgb* img, int width, int height, int 
     kernel_pixelize<<<gridSize, blockSize, pix_size * pix_size * sizeof (Rgb)>>>(device_img, img, width, height, pix_size);
 }
 
-void kernel_non_local_means_host(Rgb* device_img, Rgb* img, int width, int height, int conv_size, float weight_decay)
+void kernel_knn_host(Rgb* device_img, Rgb* img, int width, int height, int conv_size, float weight_decay)
 {
-    /*dim3 blockSize = dim3(TILE_WIDTH + STREL_SIZE - 1, TILE_WIDTH + STREL_SIZE - 1);
-    int bx = width / (blockSize.x) + blockSize.x;
-    int by = height / (blockSize.y) + blockSize.y;
+    dim3 blockSize = dim3(TILE_WIDTH, TILE_WIDTH);
+    int bx = (width + blockSize.x - 1) / blockSize.x;
+    int by = (height + blockSize.y - 1) / blockSize.y;
     dim3 gridSize = dim3(bx, by);
-    non_local_means_gpu<<<gridSize, blockSize>>>(device_img, img, conv_size, weight_decay);*/
+    //non_local_means_gpu<<<gridSize, blockSize>>>(device_img, img, conv_size, weight_decay);*/
 }
