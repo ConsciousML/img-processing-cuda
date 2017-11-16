@@ -15,6 +15,52 @@
 //#define BLOCK_W (TILE_WIDTH + (2 * R))
 //#define BLOCK_H (TILE_HEIGHT + (2 * R))
 
+__device__ void gauss_conv(Rgb *image, Rgb& res, int x, int y, int width, int height, int conv_size, double h_param)
+{
+    auto cnt = Rgb(0.0, 0.0, 0.0);
+    for (int j = y - conv_size; j < y + conv_size; j++)
+    {
+        for (int i = x - conv_size; i < x + conv_size; i++)
+        {
+            if (i >= 0 and j >= 0)
+            {
+                auto ux = image[y * width + x];
+                auto uy = image[j * width + i];
+                double c1 = std::exp(-(std::pow(std::abs(i + j - (x + y)), 2)) / (double)std::pow(conv_size, 2));
+                double h_div = std::pow(h_param, 2);
+
+                auto c2 = Rgb(std::exp(-(std::pow(std::abs(uy.r - ux.r), 2)) / h_div),
+                    std::exp(-(std::pow(std::abs(uy.g - ux.g), 2)) / h_div),
+                    std::exp(-(std::pow(std::abs(uy.b - ux.b), 2)) / h_div));
+
+                res.r += uy.r * c1 * c2.r;
+                res.g += uy.g * c1 * c2.g;
+                res.b += uy.b * c1 * c2.b;
+
+                cnt.r += c1 * c2.r;
+                cnt.g += c1 * c2.g;
+                cnt.b += c1 * c2.b;
+            }
+        }
+    }
+    if (cnt.r != 0 and cnt.g != 0 and cnt.b != 0)
+    {
+        res.r /= cnt.r;
+        res.g /= cnt.g;
+        res.b /= cnt.b;
+    }
+}
+
+__global__ void knn(Rgb* device_img, Rgb* img, int width, int height, int conv_size, double h_param)
+{
+    int x = blockIdx.x * blockDim.x + threadIdx.x;
+    int y = blockIdx.y * blockDim.y + threadIdx.y;
+    auto res = Rgb(0.0, 0.0, 0.0);
+    //gauss_conv(img, res, x, y, width, height, conv_size, h_param);
+    device_img[y * width + x].r = res.r;
+    device_img[y * width + x].g = res.g;
+    device_img[y * width + x].b = res.b;
+}
 __global__ void non_local_means_gpu(Rgb* device_img, Rgb* img, int conv_size, float weight_decay)
 {
 

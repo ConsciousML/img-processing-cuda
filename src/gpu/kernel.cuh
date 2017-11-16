@@ -17,6 +17,7 @@ struct Rgb {
     float b;
 };
 
+__global__ void knn(Rgb* device_img, Rgb* img, int width, int height, int conv_size, double h_param);
 __global__ void non_local_means_gpu(Rgb* device_img, Rgb* img, int conv_size, float weight_decay);
 __global__ void kernel_shared_conv(Rgb* device_img, Rgb* img, int width, int height, int strel_size);
 __global__ void kernel_conv(Rgb* device_img, Rgb* img, int rows, int cols, int conv_size);
