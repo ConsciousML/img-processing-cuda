@@ -57,13 +57,11 @@ __global__ void knn(Rgb* device_img, Rgb* img, int width, int height, int conv_s
     int y = blockIdx.y * blockDim.y + threadIdx.y;
     if (x >= width or y >= height)
         return;
-    /*auto res = Rgb(0.0, 0.0, 0.0);
+    auto res = Rgb(0.0, 0.0, 0.0);
     gauss_conv(img, res, x, y, width, height, conv_size, h_param);
     device_img[y * width + x].r = res.r;
     device_img[y * width + x].g = res.g;
-    device_img[y * width + x].b = res.b;*/
-    //device_img[y * width + x] = img[y * width + x];
-    device_img[y * width + x] = img[y * width + x];
+    device_img[y * width + x].b = res.b;
 }
 __global__ void non_local_means_gpu(Rgb* device_img, Rgb* img, int conv_size, float weight_decay)
 {
