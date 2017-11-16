@@ -49,7 +49,7 @@ int main(int argc, char** argv)
     else if (func_name == "shared_conv")
         kernel_shared_conv_host(device_dst, device_img, width, height, std::stoi(argv[3]));
     else if (func_name == "knn")
-        kernel_knn_host(device_dst, device_img, width, height, std::stoi(argv[3]), std::stoi(argv[4]));
+        kernel_knn_host(device_dst, device_img, width, height, std::stoi(argv[3]), std::stod(argv[4]));
     else
     {
         std::cout << "error: function name '" << func_name << "' is not known." << std::endl;

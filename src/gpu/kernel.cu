@@ -22,7 +22,7 @@ __device__ void gauss_conv(Rgb *image, Rgb& res, int x, int y, int width, int he
     {
         for (int i = x - conv_size; i < x + conv_size; i++)
         {
-            if (i >= 0 and j >= 0)
+            if (i >= 0 and j >= 0 and i < width and j < height)
             {
                 auto ux = image[y * width + x];
                 auto uy = image[j * width + i];
@@ -55,11 +55,15 @@ __global__ void knn(Rgb* device_img, Rgb* img, int width, int height, int conv_s
 {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
-    auto res = Rgb(0.0, 0.0, 0.0);
-    //gauss_conv(img, res, x, y, width, height, conv_size, h_param);
+    if (x >= width or y >= height)
+        return;
+    /*auto res = Rgb(0.0, 0.0, 0.0);
+    gauss_conv(img, res, x, y, width, height, conv_size, h_param);
     device_img[y * width + x].r = res.r;
     device_img[y * width + x].g = res.g;
-    device_img[y * width + x].b = res.b;
+    device_img[y * width + x].b = res.b;*/
+    //device_img[y * width + x] = img[y * width + x];
+    device_img[y * width + x] = img[y * width + x];
 }
 __global__ void non_local_means_gpu(Rgb* device_img, Rgb* img, int conv_size, float weight_decay)
 {

@@ -19,14 +19,12 @@ void device_to_img(Rgb *device_img, cv::Mat& img)
 {
     int width = img.rows;
     int height = img.cols;
-    std::cout << width * height << std::endl;
-
     for (int i = 0; i < height; i++)
         for (int j = 0; j < width; j++)
         {
-            img.at<cv::Vec3b>(j, i)[0] = (int)device_img[j + i * width].r;
-            img.at<cv::Vec3b>(j, i)[1] = (int)device_img[j + i * width].g;
-            img.at<cv::Vec3b>(j, i)[2] = (int)device_img[j + i * width].b;
+            img.at<cv::Vec3b>(j, i)[0] = device_img[j + i * width].r;
+            img.at<cv::Vec3b>(j, i)[1] = device_img[j + i * width].g;
+            img.at<cv::Vec3b>(j, i)[2] = device_img[j + i * width].b;
 
         }
 }
