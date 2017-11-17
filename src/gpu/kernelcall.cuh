@@ -13,3 +13,4 @@ void kernel_shared_conv_host(Rgb* device_img, Rgb* img, int width, int height, i
 void kernel_conv_host(Rgb* device_img, Rgb* img, int rows, int cols, int conv_size);
 void kernel_pixelize_host(Rgb* device_img, Rgb* img, int rows, int cols, int conv_size);
 void kernel_shared_conv_host(Rgb* device_img, Rgb* img, int width, int height, int conv_size);
+void kernel_shared_knn_host(Rgb* device_img, Rgb* img, int width, int height, int conv_size, double h_param);
