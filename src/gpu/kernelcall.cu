@@ -114,8 +114,20 @@ void kernel_knn_host(Rgb* device_img, Rgb* img, int width, int height, int conv_
     knn<<<gridSize, blockSize>>>(device_img, img, width, height, conv_size, h_param);
 }
 
-void kernel_shared_knn_host(Rgb* device_img, Rgb* img, int width, int height, int conv_size, double h_param)
+void kernel_shared_knn_host(Rgb* device_img, Rgb* img, int width, int height, int r, double h_param)
 {
-
+    int strel_size = 2 * r + r % 2;
+    if (strel_size <= 0 or strel_size > 16)
+    {
+        std::cout << "\nerror: <Strel_size> parameter must be between 1 and 16 due to shared memory constaint.\n" << std::endl;
+        assert(strel_size > 0 and strel_size < 16);
+        return;
+    }
+    int block_w = TILE_WIDTH + 2 * r;
+    dim3 blockSize = dim3(block_w, block_w);
+    int bx = (width / TILE_WIDTH - 1) + blockSize.x;
+    int by = (height / TILE_HEIGHT - 1) + blockSize.y;
+    dim3 gridSize = dim3(bx, by);
+    shared_knn<<<gridSize, blockSize, block_w * block_w * sizeof (Rgb)>>>(device_img, img, width, height, strel_size, h_param);
 }
 
