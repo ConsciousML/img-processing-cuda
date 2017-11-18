@@ -39,22 +39,26 @@ __global__ void shared_knn(Rgb* device_img, Rgb* img, int width, int height, int
     if (ty < TILE_HEIGHT && tx < TILE_WIDTH)
     {
         auto sum = Rgb(0, 0, 0);
-        int cnt = 0;
+        auto cnt = Rgb(0, 0, 0);
         for (int i = 0; i < strel_size; i++)
         {
             for (int j = 0; j < strel_size; j++)
             {
-                cnt++;
-                sum.r += fast_acc_mat[(i + ty) * block_w + j + tx].r;
-                sum.g += fast_acc_mat[(i + ty) * block_w + j + tx].g;
-                sum.b += fast_acc_mat[(i + ty) * block_w + j + tx].b;
+                auto uy = fast_acc_mat[(i + ty) * block_w + j + tx];
+                sum.r += uy.r;
+                sum.g += uy.g;
+                sum.b += uy.b;
+
+                cnt.r++;
+                cnt.g++;
+                cnt.b++;
             }
         }
         if (row_o < height && col_o < width)
         {
-            sum.r /= cnt;
-            sum.g /= cnt;
-            sum.b /= cnt;
+            sum.r /= cnt.r;
+            sum.g /= cnt.g;
+            sum.b /= cnt.b;
             device_img[row_o * width + col_o] = sum;
         }
     }
