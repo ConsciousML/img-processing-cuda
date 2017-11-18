@@ -50,18 +50,19 @@ __global__ void shared_knn(Rgb* device_img, Rgb* img, int width, int height, int
                     auto uy = fast_acc_mat[(i + ty) * block_w + j + tx];
                     
                     double h_div = std::pow(h_param, 2);
-
+		    
+                    double c1 = std::exp(-(std::pow(std::abs(col_i + row_i + i + j - (row_o + col_o)), 2)) / (double)std::pow(r, 2));
                     auto c2 = Rgb(std::exp(-(std::pow(std::abs(uy.r - ux.r), 2)) / h_div),
                         std::exp(-(std::pow(std::abs(uy.g - ux.g), 2)) / h_div),
                         std::exp(-(std::pow(std::abs(uy.b - ux.b), 2)) / h_div));
 
-                    sum.r += uy.r * c2.r;
-                    sum.g += uy.g * c2.g;
-                    sum.b += uy.b * c2.b;
+                    sum.r += uy.r * c1 * c2.r;
+                    sum.g += uy.g * c1 * c2.g;
+                    sum.b += uy.b * c1 * c2.b;
 
-                    cnt.r += c2.r;
-                    cnt.g += c2.g;
-                    cnt.b += c2.b;
+                    cnt.r += c1 * c2.r;
+                    cnt.g += c1 * c2.g;
+                    cnt.b += c1 * c2.b;
                 }
             }
             sum.r /= cnt.r;
