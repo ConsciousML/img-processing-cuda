@@ -36,30 +36,31 @@ __global__ void shared_knn(Rgb* device_img, Rgb* img, int width, int height, int
         fast_acc_mat[ty * block_w + tx] = Rgb(0, 0, 0);
     __syncthreads();
 
-    if (ty < TILE_HEIGHT && tx < TILE_WIDTH)
+    if (row_o >= 0 and col_o >= 0 and row_o < height and col_o < width)
     {
-        auto sum = Rgb(0, 0, 0);
-        auto cnt = Rgb(0, 0, 0);
-        for (int i = 0; i < strel_size; i++)
+        if (ty < TILE_HEIGHT && tx < TILE_WIDTH)
         {
-            for (int j = 0; j < strel_size; j++)
+            auto sum = Rgb(0, 0, 0);
+            auto cnt = Rgb(0, 0, 0);
+            auto ux = img[row_o * width + col_o];
+            for (int i = 0; i < strel_size; i++)
             {
-                auto uy = fast_acc_mat[(i + ty) * block_w + j + tx];
-                sum.r += uy.r;
-                sum.g += uy.g;
-                sum.b += uy.b;
+                for (int j = 0; j < strel_size; j++)
+                {
+                    auto uy = fast_acc_mat[(i + ty) * block_w + j + tx];
+                    sum.r += uy.r;
+                    sum.g += uy.g;
+                    sum.b += uy.b;
 
-                cnt.r++;
-                cnt.g++;
-                cnt.b++;
+                    cnt.r++;
+                    cnt.g++;
+                    cnt.b++;
+                }
             }
-        }
-        if (row_o < height && col_o < width)
-        {
             sum.r /= cnt.r;
             sum.g /= cnt.g;
             sum.b /= cnt.b;
-            device_img[row_o * width + col_o] = sum;
+            device_img[row_o * width + col_o] = ux;
         }
     }
 }
@@ -79,8 +80,8 @@ __device__ void gauss_conv(Rgb *image, Rgb& res, int x, int y, int width, int he
                 double h_div = std::pow(h_param, 2);
 
                 auto c2 = Rgb(std::exp(-(std::pow(std::abs(uy.r - ux.r), 2)) / h_div),
-                    std::exp(-(std::pow(std::abs(uy.g - ux.g), 2)) / h_div),
-                    std::exp(-(std::pow(std::abs(uy.b - ux.b), 2)) / h_div));
+                        std::exp(-(std::pow(std::abs(uy.g - ux.g), 2)) / h_div),
+                        std::exp(-(std::pow(std::abs(uy.b - ux.b), 2)) / h_div));
 
                 res.r += uy.r * c1 * c2.r;
                 res.g += uy.g * c1 * c2.g;
