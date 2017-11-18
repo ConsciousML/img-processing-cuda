@@ -4,19 +4,23 @@
 using namespace std;
 using namespace cv;
 
-std::valarray<float> conv(Mat image, int x, int y, int conv_size)
+std::valarray<float> conv(Mat image, int x1, int y1, int x2, int y2, int conv_size)
 {
     std::valarray<float> rgb = {0, 0, 0};
     int cnt = 0;
-    for (int j = y - conv_size; j < y + conv_size; j++)
-        for (int i = x - conv_size; i < x + conv_size; i++)
+    for (int j1 = y1 - conv_size; j1 < y1 + conv_size; j1++)
+        for (int i1 = x1 - conv_size; i1 < x1 + conv_size; i1++)
         {
-            if (i >= 0 and j >= 0)
+            int i2 = i1 - x1 + x2;
+            int j2 = j1 - y1 + y2;
+            if (i1 >= 0 and j1 >= 0 and j2 >= 0 and i2 >= 0)
             {
                 cnt++;
-                rgb[0] += image.at<cv::Vec3b>(j, i)[0];
-                rgb[1] += image.at<cv::Vec3b>(j, i)[1];
-                rgb[2] += image.at<cv::Vec3b>(j, i)[2];
+                auto pix1 = image.at<cv::Vec3b>(j1, i1);
+                auto pix2 = image.at<cv::Vec3b>(j2, i2);
+                rgb[0] += std::pow(std::abs(pix1[0] - pix2[0]), 2);
+                rgb[1] += std::pow(std::abs(pix1[1] - pix2[1]), 2);
+                rgb[2] += std::pow(std::abs(pix1[2] - pix2[2]), 2);
             }
         }
     if (cnt > 0) {
@@ -30,20 +34,20 @@ std::valarray<double> gauss_conv_nlm(cv::Mat image, int x, int y, int conv_size,
     std::valarray<double> rgb = {0, 0, 0};
     std::valarray<double> cnt = {0, 0, 0};
     int cx = 0;
-    auto ux = conv(image, y, x, conv_size);
     for (int j = y - conv_size; j < y + conv_size; j++)
     {
         for (int i = x - conv_size; i < x + conv_size; i++)
         {
             if (i < image.rows and j < image.cols and i >= 0 and j >= 0)
             {
-                auto uy = conv(image, j, i, block_radius);
+                auto u = conv(image, y, x, j, i, block_radius);
+                auto uy = image.at<cv::Vec3b>(i, j);
                 double c1 = std::exp(-(std::pow(std::abs(i + j - (x + y)), 2)) / (float)std::pow(conv_size, 2));
                 double h_div = std::pow(h_param, 2);
 
-                std::valarray<double> c2 = {std::exp(-(std::pow(std::abs(uy[0] - ux[0]), 2)) / h_div),
-                    std::exp(-(std::pow(std::abs(uy[1] - ux[1]), 2)) / h_div),
-                    std::exp(-(std::pow(std::abs(uy[2] - ux[2]), 2)) / h_div)};
+                std::valarray<double> c2 = {std::exp(-u[0] / h_div),
+                    std::exp(-u[1] / h_div),
+                    std::exp(-u[2] / h_div)};
 
                 std::valarray<double> c = {c1, c1, c1};
 
