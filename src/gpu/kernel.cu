@@ -48,19 +48,26 @@ __global__ void shared_knn(Rgb* device_img, Rgb* img, int width, int height, int
                 for (int j = 0; j < strel_size; j++)
                 {
                     auto uy = fast_acc_mat[(i + ty) * block_w + j + tx];
-                    sum.r += uy.r;
-                    sum.g += uy.g;
-                    sum.b += uy.b;
+                    
+                    double h_div = std::pow(h_param, 2);
 
-                    cnt.r++;
-                    cnt.g++;
-                    cnt.b++;
+                    auto c2 = Rgb(std::exp(-(std::pow(std::abs(uy.r - ux.r), 2)) / h_div),
+                        std::exp(-(std::pow(std::abs(uy.g - ux.g), 2)) / h_div),
+                        std::exp(-(std::pow(std::abs(uy.b - ux.b), 2)) / h_div));
+
+                    sum.r += uy.r * c2.r;
+                    sum.g += uy.g * c2.g;
+                    sum.b += uy.b * c2.b;
+
+                    cnt.r += c2.r;
+                    cnt.g += c2.g;
+                    cnt.b += c2.b;
                 }
             }
             sum.r /= cnt.r;
             sum.g /= cnt.g;
             sum.b /= cnt.b;
-            device_img[row_o * width + col_o] = ux;
+            device_img[row_o * width + col_o] = sum;
         }
     }
 }
