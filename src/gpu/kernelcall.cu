@@ -131,3 +131,12 @@ void kernel_shared_knn_host(Rgb* device_img, Rgb* img, int width, int height, in
     shared_knn<<<gridSize, blockSize, block_w * block_w * sizeof (Rgb)>>>(device_img, img, width, height, strel_size, h_param);
 }
 
+void kernel_nlm_host(Rgb* device_img, Rgb* img, int width, int height, int conv_size, int block_radius, double h_param)
+{
+    dim3 blockSize = dim3(TILE_WIDTH, TILE_WIDTH);
+    int bx = (width + blockSize.x - 1) / blockSize.x;
+    int by = (height + blockSize.y - 1) / blockSize.y;
+    dim3 gridSize = dim3(bx, by);
+    nlm<<<gridSize, blockSize>>>(device_img, img, width, height, conv_size, block_radius, h_param);
+}
+

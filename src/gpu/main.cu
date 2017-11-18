@@ -27,6 +27,11 @@ int main(int argc, char** argv)
         std::cout << "usage: main <Image_Path> knn <Conv_size> <Weight_Decay_Param>" << std::endl;
         return 1;
     }
+    if (func_name == "nlm" && argc < 6)
+    {
+        std::cout << "usage: main <Image_Path> knn <Conv_size> <Block_radius> <Weight_Decay_Param>" << std::endl;
+        return 1;
+    }
     cv::Mat image;
     image = cv::imread(argv[1], CV_LOAD_IMAGE_UNCHANGED);
     if (!image.data)
@@ -52,6 +57,8 @@ int main(int argc, char** argv)
         kernel_knn_host(device_dst, device_img, width, height, std::stoi(argv[3]), std::stod(argv[4]));
     else if (func_name == "shared_knn")
 	kernel_shared_knn_host(device_dst, device_img, width, height, std::stoi(argv[3]), std::stod(argv[4]));
+    else if (func_name == "nlm")
+        kernel_nlm_host(device_dst, device_img, width, height, std::stoi(argv[3]), std::stoi(argv[4]), std::stod(argv[5]));
     else
     {
         std::cout << "error: function name '" << func_name << "' is not known." << std::endl;

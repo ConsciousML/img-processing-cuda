@@ -4,16 +4,18 @@
 using namespace std;
 using namespace cv;
 
-std::valarray<float> conv(Mat image, int x1, int y1, int x2, int y2, int conv_size)
+std::valarray<double> conv(Mat image, int x1, int y1, int x2, int y2, int conv_size)
 {
-    std::valarray<float> rgb = {0, 0, 0};
+    std::valarray<double> rgb = {0, 0, 0};
     int cnt = 0;
     for (int j1 = y1 - conv_size; j1 < y1 + conv_size; j1++)
         for (int i1 = x1 - conv_size; i1 < x1 + conv_size; i1++)
         {
             int i2 = i1 - x1 + x2;
             int j2 = j1 - y1 + y2;
-            if (i1 >= 0 and j1 >= 0 and j2 >= 0 and i2 >= 0)
+            if (i1 >= 0 and j1 >= 0 and j2 >= 0 and i2 >= 0 and
+                i1 < image.cols and j1 < image.rows and
+                i2 < image.cols and j2 < image.rows)
             {
                 cnt++;
                 auto pix1 = image.at<cv::Vec3b>(j1, i1);

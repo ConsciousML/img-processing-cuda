@@ -10,6 +10,7 @@ Rgb *empty_img_device(cv::Mat img);
 void device_to_img(Rgb *device_img, cv::Mat& img);
 void kernel_shared_knn_host(Rgb* device_img, Rgb* img, int width, int height, int r, double h_param);
 void kernel_knn_host(Rgb* device_img, Rgb* img, int width, int height, int conv_size, double h_param);
+void kernel_nlm_host(Rgb* device_img, Rgb* img, int width, int height, int conv_size, int block_size, double h_param);
 void kernel_shared_conv_host(Rgb* device_img, Rgb* img, int width, int height, int strel_size);
 void kernel_conv_host(Rgb* device_img, Rgb* img, int rows, int cols, int conv_size);
 void kernel_pixelize_host(Rgb* device_img, Rgb* img, int rows, int cols, int conv_size);

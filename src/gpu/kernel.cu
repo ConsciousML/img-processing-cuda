@@ -15,6 +15,84 @@
 //#define BLOCK_W (TILE_WIDTH + (2 * R))
 //#define BLOCK_H (TILE_HEIGHT + (2 * R))
 
+__device__ void conv(Rgb *image, Rgb& rgb, int width, int height, int x1, int y1, int x2, int y2, int conv_size)
+{
+    int cnt = 0;
+    for (int j1 = y1 - conv_size; j1 < y1 + conv_size; j1++)
+        for (int i1 = x1 - conv_size; i1 < x1 + conv_size; i1++)
+        {
+            int i2 = i1 - x1 + x2;
+            int j2 = j1 - y1 + y2;
+            if (i1 >= 0 and j1 >= 0 and
+                    j2 >= 0 and i2 >= 0 and
+                    i1 < height and j1 < width and
+                    i2 < height and j2 < width)
+            {
+                cnt++;
+                auto pix1 = image[i1 * width + j1];
+                auto pix2 = image[i2 * width + j2];
+                rgb.r += std::pow(std::abs(pix1.r - pix2.r), 2);
+                rgb.g += std::pow(std::abs(pix1.g - pix2.g), 2);
+                rgb.b += std::pow(std::abs(pix1.b - pix2.b), 2);
+            }
+        }
+    if (cnt > 0) {
+        rgb.r /= cnt;
+        rgb.g /= cnt;
+        rgb.b /= cnt;
+    }
+}
+
+__device__ void gauss_conv_nlm(Rgb *image, Rgb& res, int x, int y, int width, int height, int conv_size, int block_radius, double h_param)
+{
+    auto cnt = Rgb(0.0, 0.0, 0.0);
+    for (int j = y - conv_size; j < y + conv_size; j++)
+    {
+        for (int i = x - conv_size; i < x + conv_size; i++)
+        {
+            if (i >= 0 and j >= 0 and i < width and j < height)
+            {
+		auto u = Rgb(0, 0, 0);
+                conv(image, u, width, height, y, x, j, i, block_radius);
+                auto uy = image[j * width + i];
+                double c1 = std::exp(-(std::pow(std::abs(i + j - (x + y)), 2)) / (double)std::pow(conv_size, 2));
+                double h_div = std::pow(h_param, 2);
+
+                auto c2 = Rgb(std::exp(-u.r / h_div),
+                        std::exp(-u.g / h_div),
+                        std::exp(-u.b / h_div));
+
+                res.r += uy.r * c1 * c2.r;
+                res.g += uy.g * c1 * c2.g;
+                res.b += uy.b * c1 * c2.b;
+
+                cnt.r += c1 * c2.r;
+                cnt.g += c1 * c2.g;
+                cnt.b += c1 * c2.b;
+            }
+        }
+    }
+    if (cnt.r != 0 and cnt.g != 0 and cnt.b != 0)
+    {
+        res.r /= cnt.r;
+        res.g /= cnt.g;
+        res.b /= cnt.b;
+    }
+}
+
+__global__ void nlm(Rgb* device_img, Rgb* img, int width, int height, int conv_size, int block_radius, double h_param)
+{
+    int x = blockIdx.x * blockDim.x + threadIdx.x;
+    int y = blockIdx.y * blockDim.y + threadIdx.y;
+    if (x >= width or y >= height)
+        return;
+    auto res = Rgb(0.0, 0.0, 0.0);
+    gauss_conv_nlm(img, res, x, y, width, height, conv_size, block_radius, h_param);
+    device_img[y * width + x].r = res.r;
+    device_img[y * width + x].g = res.g;
+    device_img[y * width + x].b = res.b;
+}
+
 __global__ void shared_knn(Rgb* device_img, Rgb* img, int width, int height, int strel_size, double h_param)
 {
     int r = strel_size / 2;
@@ -48,9 +126,7 @@ __global__ void shared_knn(Rgb* device_img, Rgb* img, int width, int height, int
                 for (int j = 0; j < strel_size; j++)
                 {
                     auto uy = fast_acc_mat[(i + ty) * block_w + j + tx];
-                    
                     double h_div = std::pow(h_param, 2);
-		    
                     double c1 = std::exp(-(std::pow(std::abs(col_i + row_i + i + j - (row_o + col_o)), 2)) / (double)std::pow(r, 2));
                     auto c2 = Rgb(std::exp(-(std::pow(std::abs(uy.r - ux.r), 2)) / h_div),
                         std::exp(-(std::pow(std::abs(uy.g - ux.g), 2)) / h_div),
@@ -121,10 +197,7 @@ __global__ void knn(Rgb* device_img, Rgb* img, int width, int height, int conv_s
     device_img[y * width + x].g = res.g;
     device_img[y * width + x].b = res.b;
 }
-__global__ void non_local_means_gpu(Rgb* device_img, Rgb* img, int conv_size, float weight_decay)
-{
 
-}
 __global__ void kernel_shared_conv(Rgb* device_img, Rgb* img, int width, int height, int strel_size)
 {
     int r = strel_size / 2;
