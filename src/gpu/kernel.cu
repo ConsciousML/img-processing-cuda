@@ -5,63 +5,232 @@
 #include "opencv2/core/core.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 #include "opencv2/highgui/highgui.hpp"
-
-#define TILE_WIDTH_PIX 4
+#include "kernel.cuh"
 
 #define TILE_WIDTH 16
 #define TILE_HEIGHT 16
 
-#define STREL_SIZE 5
-#define R (STREL_SIZE / 2)
-#define BLOCK_W (TILE_WIDTH + (2 * R))
-#define BLOCK_H (TILE_HEIGHT + (2 * R))
+//#define STREL_SIZE 5
+//#define R (STREL_SIZE / 2)
+//#define BLOCK_W (TILE_WIDTH + (2 * R))
+//#define BLOCK_H (TILE_HEIGHT + (2 * R))
 
-struct Rgb {
-    __host__ __device__ Rgb() {}
-    __host__ __device__ Rgb(float x, float y, float z) : r(x), g(y), b(z) {}
-    __host__ __device__ Rgb(cv::Vec3b v) : r(v[0]), g(v[1]), b(v[2]) {}
-    __host__ __device__ void div(int x)
-    {
-        r /= x;
-        g /= x;
-        b /= x;
-    }
-    float r;
-    float g;
-    float b;
-};
-
-__global__ void kernel_shared_conv(Rgb* device_img, Rgb* img, int width, int height)
+__device__ void conv(Rgb *image, Rgb& rgb, int width, int height, int x1, int y1, int x2, int y2, int conv_size)
 {
-    __shared__ Rgb fast_acc_mat[BLOCK_W][BLOCK_H];
+    int cnt = 0;
+    for (int j1 = y1 - conv_size; j1 < y1 + conv_size; j1++)
+        for (int i1 = x1 - conv_size; i1 < x1 + conv_size; i1++)
+        {
+            int i2 = i1 - x1 + x2;
+            int j2 = j1 - y1 + y2;
+            if (i1 >= 0 and j1 >= 0 and
+                    j2 >= 0 and i2 >= 0 and
+                    i1 < height and j1 < width and
+                    i2 < height and j2 < width)
+            {
+                cnt++;
+                auto pix1 = image[i1 * width + j1];
+                auto pix2 = image[i2 * width + j2];
+                rgb.r += std::pow(std::abs(pix1.r - pix2.r), 2);
+                rgb.g += std::pow(std::abs(pix1.g - pix2.g), 2);
+                rgb.b += std::pow(std::abs(pix1.b - pix2.b), 2);
+            }
+        }
+    if (cnt > 0) {
+        rgb.r /= cnt;
+        rgb.g /= cnt;
+        rgb.b /= cnt;
+    }
+}
+
+__device__ void gauss_conv_nlm(Rgb *image, Rgb& res, int x, int y, int width, int height, int conv_size, int block_radius, double h_param)
+{
+    auto cnt = Rgb(0.0, 0.0, 0.0);
+    for (int j = y - conv_size; j < y + conv_size; j++)
+    {
+        for (int i = x - conv_size; i < x + conv_size; i++)
+        {
+            if (i >= 0 and j >= 0 and i < width and j < height)
+            {
+		auto u = Rgb(0, 0, 0);
+                conv(image, u, width, height, y, x, j, i, block_radius);
+                auto uy = image[j * width + i];
+                double c1 = std::exp(-(std::pow(std::abs(i + j - (x + y)), 2)) / (double)std::pow(conv_size, 2));
+                double h_div = std::pow(h_param, 2);
+
+                auto c2 = Rgb(std::exp(-u.r / h_div),
+                        std::exp(-u.g / h_div),
+                        std::exp(-u.b / h_div));
+
+                res.r += uy.r * c1 * c2.r;
+                res.g += uy.g * c1 * c2.g;
+                res.b += uy.b * c1 * c2.b;
+
+                cnt.r += c1 * c2.r;
+                cnt.g += c1 * c2.g;
+                cnt.b += c1 * c2.b;
+            }
+        }
+    }
+    if (cnt.r != 0 and cnt.g != 0 and cnt.b != 0)
+    {
+        res.r /= cnt.r;
+        res.g /= cnt.g;
+        res.b /= cnt.b;
+    }
+}
+
+__global__ void nlm(Rgb* device_img, Rgb* img, int width, int height, int conv_size, int block_radius, double h_param)
+{
+    int x = blockIdx.x * blockDim.x + threadIdx.x;
+    int y = blockIdx.y * blockDim.y + threadIdx.y;
+    if (x >= width or y >= height)
+        return;
+    auto res = Rgb(0.0, 0.0, 0.0);
+    gauss_conv_nlm(img, res, x, y, width, height, conv_size, block_radius, h_param);
+    device_img[y * width + x].r = res.r;
+    device_img[y * width + x].g = res.g;
+    device_img[y * width + x].b = res.b;
+}
+
+__global__ void shared_knn(Rgb* device_img, Rgb* img, int width, int height, int strel_size, double h_param)
+{
+    int r = strel_size / 2;
+    int block_w = TILE_WIDTH + 2 * r;
+    extern __shared__ Rgb fast_acc_mat[];
     int ty = threadIdx.y;
     int tx = threadIdx.x;
     int row_o = blockIdx.y * TILE_WIDTH + ty;
     int col_o = blockIdx.x * TILE_HEIGHT + tx;
-    int row_i = row_o - R;
-    int col_i = col_o - R;
+    int row_i = row_o - r;
+    int col_i = col_o - r;
 
     if ((row_i >= 0) && (row_i < height) && (col_i >= 0) && (col_i < width))
     {
         auto elt = img[row_i * width + col_i];
-        fast_acc_mat[ty][tx] = Rgb(elt.r, elt.g, elt.b);
+        fast_acc_mat[ty * block_w + tx] = Rgb(elt.r, elt.g, elt.b);
     }
     else
-        fast_acc_mat[ty][tx] = Rgb(0, 0, 0);
+        fast_acc_mat[ty * block_w + tx] = Rgb(0, 0, 0);
+    __syncthreads();
+
+    if (row_o >= 0 and col_o >= 0 and row_o < height and col_o < width)
+    {
+        if (ty < TILE_HEIGHT && tx < TILE_WIDTH)
+        {
+            auto sum = Rgb(0, 0, 0);
+            auto cnt = Rgb(0, 0, 0);
+            auto ux = img[row_o * width + col_o];
+            for (int i = 0; i < strel_size; i++)
+            {
+                for (int j = 0; j < strel_size; j++)
+                {
+                    auto uy = fast_acc_mat[(i + ty) * block_w + j + tx];
+                    double h_div = std::pow(h_param, 2);
+                    double c1 = std::exp(-(std::pow(std::abs(col_i + row_i + i + j - (row_o + col_o)), 2)) / (double)std::pow(r, 2));
+                    auto c2 = Rgb(std::exp(-(std::pow(std::abs(uy.r - ux.r), 2)) / h_div),
+                        std::exp(-(std::pow(std::abs(uy.g - ux.g), 2)) / h_div),
+                        std::exp(-(std::pow(std::abs(uy.b - ux.b), 2)) / h_div));
+
+                    sum.r += uy.r * c1 * c2.r;
+                    sum.g += uy.g * c1 * c2.g;
+                    sum.b += uy.b * c1 * c2.b;
+
+                    cnt.r += c1 * c2.r;
+                    cnt.g += c1 * c2.g;
+                    cnt.b += c1 * c2.b;
+                }
+            }
+            sum.r /= cnt.r;
+            sum.g /= cnt.g;
+            sum.b /= cnt.b;
+            device_img[row_o * width + col_o] = sum;
+        }
+    }
+}
+
+__device__ void gauss_conv(Rgb *image, Rgb& res, int x, int y, int width, int height, int conv_size, double h_param)
+{
+    auto cnt = Rgb(0.0, 0.0, 0.0);
+    for (int j = y - conv_size; j < y + conv_size; j++)
+    {
+        for (int i = x - conv_size; i < x + conv_size; i++)
+        {
+            if (i >= 0 and j >= 0 and i < width and j < height)
+            {
+                auto ux = image[y * width + x];
+                auto uy = image[j * width + i];
+                double c1 = std::exp(-(std::pow(std::abs(i + j - (x + y)), 2)) / (double)std::pow(conv_size, 2));
+                double h_div = std::pow(h_param, 2);
+
+                auto c2 = Rgb(std::exp(-(std::pow(std::abs(uy.r - ux.r), 2)) / h_div),
+                        std::exp(-(std::pow(std::abs(uy.g - ux.g), 2)) / h_div),
+                        std::exp(-(std::pow(std::abs(uy.b - ux.b), 2)) / h_div));
+
+                res.r += uy.r * c1 * c2.r;
+                res.g += uy.g * c1 * c2.g;
+                res.b += uy.b * c1 * c2.b;
+
+                cnt.r += c1 * c2.r;
+                cnt.g += c1 * c2.g;
+                cnt.b += c1 * c2.b;
+            }
+        }
+    }
+    if (cnt.r != 0 and cnt.g != 0 and cnt.b != 0)
+    {
+        res.r /= cnt.r;
+        res.g /= cnt.g;
+        res.b /= cnt.b;
+    }
+}
+
+__global__ void knn(Rgb* device_img, Rgb* img, int width, int height, int conv_size, double h_param)
+{
+    int x = blockIdx.x * blockDim.x + threadIdx.x;
+    int y = blockIdx.y * blockDim.y + threadIdx.y;
+    if (x >= width or y >= height)
+        return;
+    auto res = Rgb(0.0, 0.0, 0.0);
+    gauss_conv(img, res, x, y, width, height, conv_size, h_param);
+    device_img[y * width + x].r = res.r;
+    device_img[y * width + x].g = res.g;
+    device_img[y * width + x].b = res.b;
+}
+
+__global__ void kernel_shared_conv(Rgb* device_img, Rgb* img, int width, int height, int strel_size)
+{
+    int r = strel_size / 2;
+    int block_w = TILE_WIDTH + 2 * r;
+    extern __shared__ Rgb fast_acc_mat[];
+    int ty = threadIdx.y;
+    int tx = threadIdx.x;
+    int row_o = blockIdx.y * TILE_WIDTH + ty;
+    int col_o = blockIdx.x * TILE_HEIGHT + tx;
+    int row_i = row_o - r;
+    int col_i = col_o - r;
+
+    if ((row_i >= 0) && (row_i < height) && (col_i >= 0) && (col_i < width))
+    {
+        auto elt = img[row_i * width + col_i];
+        fast_acc_mat[ty * block_w + tx] = Rgb(elt.r, elt.g, elt.b);
+    }
+    else
+        fast_acc_mat[ty * block_w + tx] = Rgb(0, 0, 0);
     __syncthreads();
 
     if (ty < TILE_HEIGHT && tx < TILE_WIDTH)
     {
         auto sum = Rgb(0, 0, 0);
         int cnt = 0;
-        for (int i = 0; i < STREL_SIZE; i++)
+        for (int i = 0; i < strel_size; i++)
         {
-            for (int j = 0; j < STREL_SIZE; j++)
+            for (int j = 0; j < strel_size; j++)
             {
                 cnt++;
-                sum.r += fast_acc_mat[i + ty][j + tx].r;
-                sum.g += fast_acc_mat[i + ty][j + tx].g;
-                sum.b += fast_acc_mat[i + ty][j + tx].b;
+                sum.r += fast_acc_mat[(i + ty) * block_w + j + tx].r;
+                sum.g += fast_acc_mat[(i + ty) * block_w + j + tx].g;
+                sum.b += fast_acc_mat[(i + ty) * block_w + j + tx].b;
             }
         }
         if (row_o < height && col_o < width)
@@ -102,9 +271,9 @@ __global__ void kernel_conv(Rgb* device_img, Rgb* img, int rows, int cols, int c
     }
 }
 
-__global__ void kernel_pixelize(Rgb* device_img, Rgb* img, int rows, int cols, int conv_size)
+__global__ void kernel_pixelize(Rgb* device_img, Rgb* img, int rows, int cols, int pix_size)
 {
-    __shared__ Rgb ds_img[TILE_WIDTH_PIX][TILE_WIDTH_PIX];
+    extern __shared__ Rgb ds_img[];
     int bx = blockIdx.x;
     int by = blockIdx.y;
     int tx = threadIdx.x;
@@ -118,30 +287,30 @@ __global__ void kernel_pixelize(Rgb* device_img, Rgb* img, int rows, int cols, i
     if (x >= rows || y >= cols)
         return;
 
-    for (int u = 0; u < rows / TILE_WIDTH_PIX + 1; u++)
+    for (int u = 0; u < rows / pix_size + 1; u++)
     {
-        for (int v = 0; v < cols / TILE_WIDTH_PIX + 1; v++)
+        for (int v = 0; v < cols / pix_size + 1; v++)
         {
             if (u == bx and v == by)
             {
                 auto elt = img[x + y * rows];
-                ds_img[ty][tx] = Rgb(elt.r, elt.g, elt.b);
+                ds_img[ty * pix_size + tx] = Rgb(elt.r, elt.g, elt.b);
                 __syncthreads();
 
-                for (int i = y - conv_size; i < y + conv_size && i < cols; i++)
+                for (int i = y - pix_size; i < y + pix_size && i < cols; i++)
                 {
-                    for (int j = x - conv_size; j < x + conv_size && j < rows; j++)
+                    for (int j = x - pix_size; j < x + pix_size && j < rows; j++)
                     {
                         if (i >= 0 and j >= 0
-                                and i >= v * TILE_WIDTH_PIX
-                                and i < (v + 1) * TILE_WIDTH_PIX
-                                and j >= u * TILE_WIDTH_PIX
-                                and j < (u + 1) * TILE_WIDTH_PIX)
+                                and i >= v * pix_size
+                                and i < (v + 1) * pix_size
+                                and j >= u * pix_size
+                                and j < (u + 1) * pix_size)
                         {
                             cnt++;
-                            int ds_x = j - u * TILE_WIDTH_PIX;
-                            int ds_y = i - v * TILE_WIDTH_PIX;
-                            auto elt = ds_img[ds_y][ds_x];
+                            int ds_x = j - u * pix_size;
+                            int ds_y = i - v * pix_size;
+                            auto elt = ds_img[ds_y * pix_size + ds_x];
                             device_img[x + y * rows].r += elt.r;
                             device_img[x + y * rows].g += elt.g;
                             device_img[x + y * rows].b += elt.b;
@@ -157,112 +326,3 @@ __global__ void kernel_pixelize(Rgb* device_img, Rgb* img, int rows, int cols, i
     device_img[x + y * rows].b /= cnt;
 }
 
-Rgb *img_to_device(cv::Mat img)
-{
-    Rgb *device_img;
-    int width = img.rows;
-    int height = img.cols;
-    cudaMallocManaged(&device_img, width * height * sizeof (Rgb));
-
-    for (int i = 0; i < height; i++)
-        for (int j = 0; j < width; j++)
-            device_img[j + i * width] = Rgb(img.at<cv::Vec3b>(j, i));
-
-    return device_img;
-}
-
-void device_to_img(Rgb *device_img, cv::Mat& img)
-{
-    int width = img.rows;
-    int height = img.cols;
-    std::cout << width * height << std::endl;
-
-    for (int i = 0; i < height; i++)
-        for (int j = 0; j < width; j++)
-        {
-            img.at<cv::Vec3b>(j, i)[0] = (int)device_img[j + i * width].r;
-            img.at<cv::Vec3b>(j, i)[1] = (int)device_img[j + i * width].g;
-            img.at<cv::Vec3b>(j, i)[2] = (int)device_img[j + i * width].b;
-
-        }
-}
-
-Rgb *empty_img_device(cv::Mat img)
-{
-    Rgb *device_img;
-    int width = img.rows;
-    int height = img.cols;
-    cudaMallocManaged(&device_img, width * height * sizeof (Rgb));
-
-    for (int i = 0; i < height; i++)
-        for (int j = 0; j < width; j++)
-            device_img[j + i * width] = Rgb(0.0, 0.0, 0.0);
-
-    return device_img;
-}
-
-int main(int argc, char** argv)
-{
-    if (argc < 4)
-    {
-        std::cout << "usage: main <Image_Path> <Func_name> <Conv_size>" << std::endl;
-        return 1;
-    }
-    cv::Mat image;
-    image = cv::imread(argv[1], CV_LOAD_IMAGE_UNCHANGED);
-    if (!image.data)
-    {
-        std::cout << "Could not open or find the image" << std::endl;
-        return 1;
-    }
-
-    std::string func_name = argv[2];
-    int width = image.rows;
-    int height = image.cols;
-
-    Rgb* device_dst = empty_img_device(image);
-    Rgb* device_img = img_to_device(image);
-    Rgb* out = (Rgb*)malloc(width * height * sizeof (Rgb));
-
-    dim3 blockSize;
-    if (func_name == "pixelize")
-        blockSize = dim3(TILE_WIDTH_PIX, TILE_WIDTH_PIX);
-    else
-        blockSize = dim3(TILE_WIDTH, TILE_WIDTH);
-    int bx = (width + blockSize.x - 1) / blockSize.x;
-    int by = (height + blockSize.y - 1) / blockSize.y;
-    dim3 gridSize = dim3(bx, by);
-
-    if (func_name == "pixelize")
-        kernel_pixelize<<<gridSize, blockSize>>>(device_dst, device_img, width, height, std::stoi(argv[3]));
-    else if (func_name == "conv")
-        kernel_conv<<<gridSize, blockSize>>>(device_dst, device_img, width, height, std::stoi(argv[3]));
-    else if (func_name == "shared_conv")
-    {
-        dim3 block(16 + STREL_SIZE - 1, 16 + STREL_SIZE - 1);
-        dim3 grid(width / (block.x) + block.x, height / (block.y) + block.y);
-        kernel_shared_conv<<<grid, block>>>(device_dst, device_img, width, height);
-    }
-    else
-    {
-        std::cout << "error: function name '" << func_name << "' is not known." << std::endl;
-        cudaFree(device_dst);
-        cudaFree(device_img);
-        free(out);
-        return 1;
-    }
-
-    cudaDeviceSynchronize();
-    cudaMemcpy(out, device_dst, height * width * sizeof (Rgb), cudaMemcpyDeviceToHost);
-
-    device_to_img(out, image);
-
-    cudaFree(device_dst);
-    cudaFree(device_img);
-    free(out);
-
-    cv::namedWindow("Display Window", CV_WINDOW_AUTOSIZE);
-    cv::imshow("Display Window", image);
-    cv::waitKey(0);
-    return 0;
-}
