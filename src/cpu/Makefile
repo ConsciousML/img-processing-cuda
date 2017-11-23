@@ -1,9 +1,9 @@
 CXX=g++
 INCDIR =../utils
-CXXFLAGS=-Wall -Wextra -Werror -I$(INCDIR) -std=gnu++11
+CXXFLAGS= -I$(INCDIR) -std=c++11
 VPATH=$(INCDIR)
 #VPATH =
-SRCUTILS=$(INCDIR)/utils.cpp
+#SRCUTILS=$(INCDIR)/utils.cpp
 SRC=test_opencv.cpp $(SRCUTILS)
 CFLAGS=pkg-config --cflags opencv
 LIBS=`pkg-config opencv --cflags --libs`
