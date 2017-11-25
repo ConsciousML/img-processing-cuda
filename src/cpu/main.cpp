@@ -35,7 +35,10 @@ int main(int argc, char** argv)
     }
     Mat image;
     image;
-    image = imread(argv[1], CV_LOAD_IMAGE_UNCHANGED);
+    if (func_name == "sobel")
+        image = imread(argv[1], 0);
+    else
+        image = imread(argv[1], CV_LOAD_IMAGE_UNCHANGED);
     if (!image.data)
     {
         cout << "Could not open or find the image" << std::endl;

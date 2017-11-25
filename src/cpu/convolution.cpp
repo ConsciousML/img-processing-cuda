@@ -39,12 +39,14 @@ cv::Mat convolution(cv::Mat image, int conv_size)
     return conv_img;
 }
 
-std::valarray<double> conv_mask(cv::Mat image, int x, int y, int conv_size, int mask1[][3], int mask2[][3])
+double conv_mask(cv::Mat image, int x, int y, int conv_size, int mask1[][3], int mask2[][3])
 {
-    std::valarray<double> rgb1 = {0, 0, 0};
-    std::valarray<double> rgb2 = {0, 0, 0};
+    double sum1 = 0.0;
+    double sum2 = 0.0;
     int u = 0;
     int v = 0;
+    double cnt1 = 0;
+    double cnt2 = 0;
     for (int j = y - conv_size; j <= y + conv_size; j++)
     {
         for (int i = x - conv_size; i <= x + conv_size; i++)
@@ -53,22 +55,20 @@ std::valarray<double> conv_mask(cv::Mat image, int x, int y, int conv_size, int 
             {
                 int weight1 = mask1[u][v];
                 int weight2 = mask2[u][v];
-                auto pix = image.at<cv::Vec3b>(i, j);
-                rgb1[0] += pix[0] * weight1;
-                rgb1[1] += pix[1] * weight1;
-                rgb1[2] += pix[2] * weight1;
-                rgb2[0] += pix[0] * weight2;
-                rgb2[1] += pix[1] * weight2;
-                rgb2[2] += pix[2] * weight2;
+                auto pix = image.at<uchar>(i, j);
+                sum1 += pix * weight1;
+                sum2 += pix * weight2;
+                cnt1 += abs(weight1);
+                cnt2 += abs(weight2);
             }
             v++;
         }
         u++;
         v = 0;
     }
-    std::valarray<double> res = {sqrt(pow(rgb1[0], 2) + pow(rgb2[0],2)),
-                                 sqrt(pow(rgb1[1], 2) + pow(rgb2[1],2)),
-                                 sqrt(pow(rgb1[2], 2) + pow(rgb2[2],2))};
+    sum1 /= cnt1;
+    sum2 /= cnt2;
+    double res = sqrt(pow(sum1, 2) + pow(sum2, 2));
     return res;
 }
 
@@ -82,9 +82,7 @@ cv::Mat conv_with_mask(cv::Mat image, int conv_size)
         for (int x = 0; x < image.rows; x++)
         {
            auto gc = conv_mask(image, x, y, conv_size, mask1, mask2);
-           img.at<cv::Vec3b>(x, y)[0] = gc[0];
-           img.at<cv::Vec3b>(x, y)[1] = gc[1];
-           img.at<cv::Vec3b>(x, y)[2] = gc[2];
+           img.at<uchar>(x, y) = gc;
         }
     }
     return img;
