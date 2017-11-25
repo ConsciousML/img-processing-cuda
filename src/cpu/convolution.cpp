@@ -39,7 +39,7 @@ cv::Mat convolution(cv::Mat image, int conv_size)
     return conv_img;
 }
 
-double conv_mask(cv::Mat image, int x, int y, int conv_size, int mask1[][3], int mask2[][3])
+std::pair<double, double> conv_mask(cv::Mat image, int x, int y, int conv_size, int mask1[][3], int mask2[][3])
 {
     double sum1 = 0.0;
     double sum2 = 0.0;
@@ -66,25 +66,30 @@ double conv_mask(cv::Mat image, int x, int y, int conv_size, int mask1[][3], int
         u++;
         v = 0;
     }
-    sum1 /= cnt1;
-    sum2 /= cnt2;
+    //sum1 /= cnt1;
+    //sum2 /= cnt2;
     double res = sqrt(pow(sum1, 2) + pow(sum2, 2));
-    return res;
+    double d = atan2(sum2, sum1);
+    d = (d > 0 ? d : (2 * M_PI + d)) * 360 / (2 * M_PI);
+    return std::pair<double, double>(res, d);
 }
 
 cv::Mat conv_with_mask(cv::Mat image, int conv_size)
 {
-    auto img = image.clone();
+    auto grad = image.clone();
+    auto direction = image.clone();
     int mask1[3][3] = {{-1, -2, -1}, {0, 0, 0}, {1, 2, 1}};
     int mask2[3][3] = {{-1, 0, 1}, {-2, 0, 2}, {-1, 0, 1}};
     for (int y = 0; y < image.cols; y++)
     {
         for (int x = 0; x < image.rows; x++)
         {
-           auto gc = conv_mask(image, x, y, conv_size, mask1, mask2);
-           img.at<uchar>(x, y) = gc;
+           auto pair = conv_mask(image, x, y, conv_size, mask1, mask2);
+           grad.at<uchar>(x, y) = pair.first;
+           std::cout << pair.second << std::endl;
+           direction.at<uchar>(x, y) = pair.second;
         }
     }
-    return img;
+    return direction;
 }
 
