@@ -44,7 +44,7 @@ Mat DFT(Mat& I)
 }
 int main(int argc, char** argv)
 {
-  if (argc < 1)
+  if (argc != 2)
   {
     printf("usage: main <Image_Path> \n");
     return 1;

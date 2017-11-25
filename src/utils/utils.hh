@@ -4,25 +4,29 @@
 #include "opencv2/highgui/highgui.hpp"
 using namespace cv;
 
-class Functor {
-  public:
-  Functor(Mat &img);
-  virtual uchar operator()(uchar elt) ; 
-  virtual Vec3b operator()(Vec3b elt) ; 
-  private:
-  Mat  img_;
-};
+Mat& DFT(Mat& I2);
 
+/*class Functor {
+  public:
+    Functor(Mat &img);
+    virtual uchar & operator()(uchar & elt, int i, int j) ; 
+    virtual Vec3b & operator()(Vec3b & elt, int i, int j) ; 
+  private:
+    Mat  img_;
+};*/
+/*
 class GrayScale: public Functor{
-  public:
-  GrayScale(Mat img);
-  virtual uchar operator()(uchar elt) override  ; 
-  virtual Vec3b operator()(Vec3b elt) override  ; 
-  private:
-  Mat imgp_; 
+    Vec3b & operator()(Vec3b & elt, int i, int j) ; 
+    //  private:
+    // Mat imgp_; 
 };
-
-Mat& Iterator(Mat& I, Functor f);
-
-
-
+*/
+/*class DFT: public Functor{
+  public:
+    DFT(Mat &img):Functor(img)
+    {
+    }
+    uchar & operator()(uchar & elt, int i, int j) ; 
+    Vec3b & operator()(Vec3b & elt, int i, int j) ; 
+};
+*/
