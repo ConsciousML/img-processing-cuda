@@ -34,6 +34,7 @@ int main(int argc, char** argv)
 
     }
     Mat image;
+    image;
     image = imread(argv[1], CV_LOAD_IMAGE_UNCHANGED);
     if (!image.data)
     {
@@ -48,6 +49,8 @@ int main(int argc, char** argv)
         res = knn(image, stoi(argv[3]), stof(argv[4]));
     else if (func_name == "conv")
         res = convolution(image, stoi(argv[3]));
+    else if (func_name == "sobel")
+        res = conv_with_mask(image, 1);
     namedWindow("Display Window", CV_WINDOW_AUTOSIZE);
     imshow("Display Window", res);
     waitKey(0);

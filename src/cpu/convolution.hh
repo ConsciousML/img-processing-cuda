@@ -6,3 +6,4 @@
 
 std::valarray<double> conv_mask(cv::Mat image, int x, int y, int conv_size);
 cv::Mat convolution(cv::Mat image, int conv_size);
+cv::Mat conv_with_mask(cv::Mat image, int conv_size);
