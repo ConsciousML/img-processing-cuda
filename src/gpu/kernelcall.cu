@@ -185,8 +185,19 @@ void kernel_edge_detect(Rgb* device_img, double* img, int width, int height, int
     cudaDeviceSynchronize();
     non_max_suppr<<<gridSize, blockSize>>>(device_img, img, width, height, otsu_threshold);
     cudaDeviceSynchronize();
-    bool changed = false;
-    //hysterysis<<<gridSize, blockSize>>>(device_img, changed, width, height, otsu_threshold * 0.5);
+    int *changed_device;
+    int *changed_host;
+    cudaMallocManaged(&changed_device, 1 * sizeof (int));
+    hysterysis<<<gridSize, blockSize>>>(device_img, changed_device, width, height, otsu_threshold * 0.5);
+    cudaDeviceSynchronize();
+    cudaMemcpy(changed_host, changed_device, sizeof (int), cudaMemcpyDeviceToHost);
+    std::cout << changed_host << std::endl;
+    while (changed_host)
+    {
+        hysterysis<<<gridSize, blockSize>>>(device_img, changed_device, width, height, otsu_threshold * 0.5);
+        cudaDeviceSynchronize();
+        cudaMemcpy(changed_host, changed_device, sizeof (int), cudaMemcpyDeviceToHost);
+    }
     /*cv::Mat dst;
     cv::Mat tmp_image;
     double otsu_threshold = cv::threshold(image, dst, 0, 255, CV_THRESH_BINARY | CV_THRESH_OTSU);

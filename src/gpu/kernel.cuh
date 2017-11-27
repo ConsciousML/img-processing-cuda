@@ -16,7 +16,7 @@ struct Rgb {
     double g;
     double b;
 };
-__global__ void hysterysis(Rgb *device_img, bool& changed, int width, int height, double t);
+__global__ void hysterysis(Rgb *device_img, int* changed, int width, int height, double t);
 __global__ void non_max_suppr(Rgb *device_img, double* img, int width, int height, double otsu_threshold);
 __global__ void sobel_conv(Rgb *device_img, double* img, int width, int height, int conv_size);
 __global__ void shared_knn(Rgb* device_img, Rgb* img, int width, int height, int conv_size, double h_param);

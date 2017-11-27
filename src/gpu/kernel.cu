@@ -19,7 +19,7 @@
 __device__ int mask1[3][3] = {{-1, -2, -1}, {0, 0, 0}, {1, 2, 1}};
 __device__ int mask2[3][3] = {{-1, 0, 1}, {-2, 0, 2}, {-1, 0, 1}};
 
-__global__ void hysterysis(Rgb *device_img, bool& changed, int width, int height, double t)
+__global__ void hysterysis(Rgb *device_img, int* changed, int width, int height, double t)
 {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
@@ -27,8 +27,10 @@ __global__ void hysterysis(Rgb *device_img, bool& changed, int width, int height
         return;
     if (device_img[x + y * width].r == 255)
         return;
+
     double curr_dir = device_img[x + y * width].b;
     double curr_grad = device_img[x + y * width].g;
+    changed[0] = 0;
     if (22.5 <= curr_dir and curr_dir < 67.5
             and (x - 1) >= 0
             and (y + 1) < height
@@ -40,7 +42,7 @@ __global__ void hysterysis(Rgb *device_img, bool& changed, int width, int height
         if (((22.5 <= dir1 and dir1 < 67.5) or (22.5 <= dir2 and dir2 < 67.5)) and curr_grad > t)
         {
             device_img[x + y * width].r = 255;
-            changed = true;
+            changed[0] = 1;
         }
     }
     else if (67.5 <= curr_dir and curr_dir < 112.5
@@ -52,7 +54,7 @@ __global__ void hysterysis(Rgb *device_img, bool& changed, int width, int height
         if (((67.5 <= dir1 and dir1 < 112.5) or (67.5 < dir2 and dir2 < 112.5)) and curr_grad > t)
         {
             device_img[x + y * width].r = 255;
-            changed = true;
+            changed[0] = 1;
         }
     }
     else if (112.5 <= curr_dir and curr_dir < 157.5
@@ -66,7 +68,7 @@ __global__ void hysterysis(Rgb *device_img, bool& changed, int width, int height
         if (((112.5 <= dir1 and dir1 < 157.5) or (112.5 <= dir2 and dir2 < 157.5)) and curr_grad > t)
         {
             device_img[x + y * width].r = 255;
-            changed = true;
+            changed[0] = 1;
         }
     }
     else if (((0 <= curr_dir and curr_dir < 22.5)
@@ -80,7 +82,7 @@ __global__ void hysterysis(Rgb *device_img, bool& changed, int width, int height
                     or ((0 <= dir2 and dir2 < 22.5) and (157.5 <= dir2 and dir2 <= 180.5))) and curr_grad > t)
         {
             device_img[x + y * width].r = 255;
-            changed = true;
+            changed[0] = 1;
         }
     }
 }
