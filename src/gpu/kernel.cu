@@ -18,6 +18,66 @@
 
 __device__ int mask1[3][3] = {{-1, -2, -1}, {0, 0, 0}, {1, 2, 1}};
 __device__ int mask2[3][3] = {{-1, 0, 1}, {-2, 0, 2}, {-1, 0, 1}};
+
+__global__ void non_max_suppr(Rgb *device_img, double* img, int width, int height, double thresh)
+{
+    int x = blockIdx.x * blockDim.x + threadIdx.x;
+    int y = blockIdx.y * blockDim.y + threadIdx.y;
+    if (x >= width or y >= height)
+        return;
+    double curr_dir = device_img[x + y * width].b;
+    double curr_grad = device_img[x + y * width].g;
+    if (22.5 <= curr_dir and curr_dir < 67.5
+            and (x - 1) >= 0
+            and (y + 1) < height
+            and (x + 1) < width
+            and (y - 1) >= 0)
+    {
+        double val1 = device_img[(x - 1) + (y + 1) * width].g;
+        double val2 = device_img[(x + 1) + (y - 1) * width].g;
+        if (val1 < curr_grad and val2 < curr_grad and curr_grad > thresh)
+            device_img[x + y * width].r = 255;
+        else
+            device_img[x + y * width].r = 0;
+    }
+    else if (67.5 <= curr_dir and curr_dir < 112.5
+            and (x - 1) >= 0
+            and (x + 1) < width)
+    {
+        double val1 = device_img[(x - 1) + y * width].g;
+        double val2 = device_img[(x + 1) + y * width].g;
+        if (val1 < curr_grad and val2 < curr_grad and curr_grad > thresh)
+            device_img[x + y * width].r = 255;
+        else
+            device_img[x + y * width].r = 0;
+    }
+    else if (112.5 <= curr_dir and curr_dir < 157.5
+            and (x - 1) >= 0
+            and (y - 1) >= 0
+            and (x + 1) < width
+            and (y + 1) < height)
+    {
+        double val1 = device_img[(x - 1) + (y - 1) * width].g;
+        double val2 = device_img[(x + 1) + (y + 1) * width].g;
+        if (val1 < curr_grad and val2 < curr_grad and curr_grad > thresh)
+            device_img[x + y * width].r = 255;
+        else
+            device_img[x + y * width].r = 0;
+    }
+    else if (((0 <= curr_dir and curr_dir < 22.5)
+                or (157.5 <= curr_dir and curr_dir <= 180.0))
+            and (y - 1) >= 0
+            and (y + 1) < height)
+    {
+        double val1 = device_img[x + (y - 1) * width].g;
+        double val2 = device_img[x + (y + 1) * width].g;
+        if (val1 < curr_grad and val2 < curr_grad and curr_grad > thresh)
+            device_img[x + y * width].r = 255;
+        else
+            device_img[x + y * width].r = 0;
+    }
+}
+
 __global__ void sobel_conv(Rgb *device_img, double* img, int width, int height, int conv_size)
 {
 
@@ -54,7 +114,7 @@ __global__ void sobel_conv(Rgb *device_img, double* img, int width, int height, 
     double g = std::sqrt(std::pow(sum1, 2) + std::pow(sum2, 2));
     double d = atan2(sum2, sum1);
     d = (d > 0 ? d : (2 * M_PI + d)) * 360 / (2 * M_PI);
-    device_img[x + y * width].r = img[x + y * width];
+    //device_img[x + y * width].r = img[x + y * width];
     device_img[x + y * width].g = g;
     device_img[x + y * width].b = d;
 
@@ -97,7 +157,7 @@ __device__ void gauss_conv_nlm(Rgb *image, Rgb& res, int x, int y, int width, in
         {
             if (i >= 0 and j >= 0 and i < width and j < height)
             {
-		auto u = Rgb(0, 0, 0);
+                auto u = Rgb(0, 0, 0);
                 conv(image, u, width, height, y, x, j, i, block_radius);
                 auto uy = image[j * width + i];
                 double c1 = std::exp(-(std::pow(std::abs(i + j - (x + y)), 2)) / (double)std::pow(conv_size, 2));
@@ -174,8 +234,8 @@ __global__ void shared_knn(Rgb* device_img, Rgb* img, int width, int height, int
                     double h_div = std::pow(h_param, 2);
                     double c1 = std::exp(-(std::pow(std::abs(col_i + row_i + i + j - (row_o + col_o)), 2)) / (double)std::pow(r, 2));
                     auto c2 = Rgb(std::exp(-(std::pow(std::abs(uy.r - ux.r), 2)) / h_div),
-                        std::exp(-(std::pow(std::abs(uy.g - ux.g), 2)) / h_div),
-                        std::exp(-(std::pow(std::abs(uy.b - ux.b), 2)) / h_div));
+                            std::exp(-(std::pow(std::abs(uy.g - ux.g), 2)) / h_div),
+                            std::exp(-(std::pow(std::abs(uy.b - ux.b), 2)) / h_div));
 
                     sum.r += uy.r * c1 * c2.r;
                     sum.g += uy.g * c1 * c2.g;
