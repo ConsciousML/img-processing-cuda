@@ -19,6 +19,72 @@
 __device__ int mask1[3][3] = {{-1, -2, -1}, {0, 0, 0}, {1, 2, 1}};
 __device__ int mask2[3][3] = {{-1, 0, 1}, {-2, 0, 2}, {-1, 0, 1}};
 
+__global__ void hysterysis(Rgb *device_img, bool& changed, int width, int height, double t)
+{
+    int x = blockIdx.x * blockDim.x + threadIdx.x;
+    int y = blockIdx.y * blockDim.y + threadIdx.y;
+    if (x >= width or y >= height)
+        return;
+    if (device_img[x + y * width].r == 255)
+        return;
+    double curr_dir = device_img[x + y * width].b;
+    double curr_grad = device_img[x + y * width].g;
+    if (22.5 <= curr_dir and curr_dir < 67.5
+            and (x - 1) >= 0
+            and (y + 1) < height
+            and (x + 1) < width
+            and (y - 1) >= 0)
+    {
+        double dir1 = device_img[(x - 1) + (y + 1) * width].b;
+        double dir2 = device_img[(x + 1) + (y - 1) * width].b;
+        if (((22.5 <= dir1 and dir1 < 67.5) or (22.5 <= dir2 and dir2 < 67.5)) and curr_grad > t)
+        {
+            device_img[x + y * width].r = 255;
+            changed = true;
+        }
+    }
+    else if (67.5 <= curr_dir and curr_dir < 112.5
+            and (x - 1) >= 0
+            and (x + 1) < width)
+    {
+        double dir1 = device_img[(x - 1) + y * width].b;
+        double dir2 = device_img[(x + 1) + y * width].b;
+        if (((67.5 <= dir1 and dir1 < 112.5) or (67.5 < dir2 and dir2 < 112.5)) and curr_grad > t)
+        {
+            device_img[x + y * width].r = 255;
+            changed = true;
+        }
+    }
+    else if (112.5 <= curr_dir and curr_dir < 157.5
+            and (x - 1) >= 0
+            and (y - 1) >= 0
+            and (x + 1) < width
+            and (y + 1) < height)
+    {
+        double dir1 = device_img[(x - 1) + (y - 1) * width].b;
+        double dir2 = device_img[(x + 1) + (y + 1) * width].b;
+        if (((112.5 <= dir1 and dir1 < 157.5) or (112.5 <= dir2 and dir2 < 157.5)) and curr_grad > t)
+        {
+            device_img[x + y * width].r = 255;
+            changed = true;
+        }
+    }
+    else if (((0 <= curr_dir and curr_dir < 22.5)
+                or (157.5 <= curr_dir and curr_dir <= 180.0))
+            and (y - 1) >= 0
+            and (y + 1) < height)
+    {
+        double dir1 = device_img[x + (y - 1) * width].b;
+        double dir2 = device_img[x + (y + 1) * width].b;
+        if ((((0 <= dir1 and dir1 < 22.5) and (157.5 <= dir1 and dir1 <= 180.5))
+                    or ((0 <= dir2 and dir2 < 22.5) and (157.5 <= dir2 and dir2 <= 180.5))) and curr_grad > t)
+        {
+            device_img[x + y * width].r = 255;
+            changed = true;
+        }
+    }
+}
+
 __global__ void non_max_suppr(Rgb *device_img, double* img, int width, int height, double thresh)
 {
     int x = blockIdx.x * blockDim.x + threadIdx.x;

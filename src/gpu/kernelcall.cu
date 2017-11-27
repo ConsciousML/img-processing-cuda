@@ -34,7 +34,6 @@ void device_to_img(Rgb *device_img, cv::Mat& img)
             img.at<cv::Vec3b>(j, i)[0] = device_img[j + i * width].r;
             img.at<cv::Vec3b>(j, i)[1] = device_img[j + i * width].g;
             img.at<cv::Vec3b>(j, i)[2] = device_img[j + i * width].b;
-
         }
 }
 
@@ -76,7 +75,6 @@ double *empty_img_device_grey(cv::Mat img)
     for (int i = 0; i < height; i++)
         for (int j = 0; j < width; j++)
             device_img[j + i * width] = 0.0;
-
     return device_img;
 }
 
@@ -186,6 +184,9 @@ void kernel_edge_detect(Rgb* device_img, double* img, int width, int height, int
     sobel_conv<<<gridSize, blockSize>>>(device_img, img, width, height, conv_size);
     cudaDeviceSynchronize();
     non_max_suppr<<<gridSize, blockSize>>>(device_img, img, width, height, otsu_threshold);
+    cudaDeviceSynchronize();
+    bool changed = false;
+    //hysterysis<<<gridSize, blockSize>>>(device_img, changed, width, height, otsu_threshold * 0.5);
     /*cv::Mat dst;
     cv::Mat tmp_image;
     double otsu_threshold = cv::threshold(image, dst, 0, 255, CV_THRESH_BINARY | CV_THRESH_OTSU);
