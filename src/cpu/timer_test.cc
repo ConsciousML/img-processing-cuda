@@ -1,11 +1,14 @@
 #include "timer.hh"
 #include <iostream>
+#include <fstream>
 int main()
 {
   double t = 1;
-   double &b = t;
-   {
-    scoped_timer timer(t);
+  std::ofstream  myfile;
+  myfile.open ("time_rec.txt",  std::ofstream::out | std::ofstream::app);
+
+  {
+    scoped_timer timer(t, myfile);
     //do your stuff there
     long a = 0;
     for(int i = 0; i < 1000; i++)
@@ -16,4 +19,6 @@ int main()
       }
     }
   }
+  myfile.close();
+
 }

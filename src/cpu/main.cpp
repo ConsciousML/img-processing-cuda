@@ -1,4 +1,6 @@
 #include <iostream>
+#include "timer/hh"
+#include <string>  
 #include <valarray>
 #include "opencv2/core/core.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
@@ -31,7 +33,6 @@ int main(int argc, char** argv)
     {
         printf("usage: main <Image_Path> nlm <Conv_size> <Block_radius> <Weight_Decay_Param>\n");
         return 1;
-
     }
     Mat image;
     image;
@@ -44,8 +45,8 @@ int main(int argc, char** argv)
         cout << "Could not open or find the image" << std::endl;
         return 1;
     }
-
     Mat res;
+    
     if (func_name == "nlm")
         res = non_local_means_cpu(image, stoi(argv[3]), stoi(argv[4]), stod(argv[5]));
     else if (func_name == "knn")
