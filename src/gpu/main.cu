@@ -44,9 +44,27 @@ int main(int argc, char** argv)
     int width = image.rows;
     int height = image.cols;
 
-    Rgb* device_dst = empty_img_device(image);
-    Rgb* device_img = img_to_device(image);
-    Rgb* out = (Rgb*)malloc(width * height * sizeof (Rgb));
+    Rgb* device_dst;
+    Rgb* device_img;
+    Rgb* out;
+    double* device_dst_grey;
+    double* device_img_grey;
+    double* out_grey;
+
+    cv::Mat grey_img;
+    if (func_name != "edge_detect")
+    {
+        device_dst = empty_img_device(image);
+        device_img = img_to_device(image);
+        out = (Rgb*)malloc(width * height * sizeof (Rgb));
+    }
+    else
+    {
+        cv::cvtColor(image, grey_img, cv::COLOR_BGR2GRAY);
+        device_dst_grey = empty_img_device_grey(grey_img);
+        device_img_grey = img_to_device_grey(grey_img);
+        out_grey = (double*)malloc(width * height * sizeof (double));
+    }
 
     if (func_name == "pixelize")
         kernel_pixelize_host(device_dst, device_img, width, height, std::stoi(argv[3]));
@@ -63,11 +81,8 @@ int main(int argc, char** argv)
     else if (func_name == "edge_detect")
     {
         cv::Mat dst;
-        cv::Mat grey_img;
-        cv::cvtColor(image, grey_img, cv::COLOR_BGR2GRAY);
 	double otsu_threshold = cv::threshold(grey_img, dst, 0, 255, CV_THRESH_BINARY | CV_THRESH_OTSU);
-        std::cout << otsu_threshold << std::endl;
-        //kernel_edge_detect(device_dst, device_img, 1, otsu_threshold);
+        kernel_edge_detect(device_dst_grey, device_img_grey, width, height, 1, otsu_threshold);
     }
     else
     {
@@ -79,14 +94,26 @@ int main(int argc, char** argv)
     }
 
     cudaDeviceSynchronize();
-    cudaMemcpy(out, device_dst, height * width * sizeof (Rgb), cudaMemcpyDeviceToHost);
+    if (func_name != "edge_detect")
+    {
+        cudaMemcpy(out, device_dst, height * width * sizeof (Rgb), cudaMemcpyDeviceToHost);
 
-    device_to_img(out, image);
+        device_to_img(out, image);
 
-    cudaFree(device_dst);
-    cudaFree(device_img);
-    free(out);
+        cudaFree(device_dst);
+        cudaFree(device_img);
+        free(out);
+    }
+    else
+    {
+        cudaMemcpy(out_grey, device_dst_grey, height * width * sizeof (double), cudaMemcpyDeviceToHost);
 
+        device_to_img_grey(out_grey, image);
+
+        cudaFree(device_dst_grey);
+        cudaFree(device_img_grey);
+        free(out_grey);
+    }
     cv::namedWindow("Display Window", CV_WINDOW_AUTOSIZE);
     cv::imshow("Display Window", image);
     cv::waitKey(0);

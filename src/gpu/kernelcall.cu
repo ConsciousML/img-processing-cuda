@@ -15,6 +15,15 @@
 //#define BLOCK_W (TILE_WIDTH + (2 * R))
 //#define BLOCK_H (TILE_HEIGHT + (2 * R))
 
+void device_to_img_grey(double *device_img, cv::Mat& img)
+{
+    int width = img.rows;
+    int height = img.cols;
+    for (int i = 0; i < height; i++)
+        for (int j = 0; j < width; j++)
+            img.at<uchar>(j, i) = device_img[j + i * width];
+}
+
 void device_to_img(Rgb *device_img, cv::Mat& img)
 {
     int width = img.rows;
@@ -27,6 +36,20 @@ void device_to_img(Rgb *device_img, cv::Mat& img)
             img.at<cv::Vec3b>(j, i)[2] = device_img[j + i * width].b;
 
         }
+}
+
+double *img_to_device_grey(cv::Mat img)
+{
+    double *device_img;
+    int width = img.rows;
+    int height = img.cols;
+    cudaMallocManaged(&device_img, width * height * sizeof (double));
+
+    for (int i = 0; i < height; i++)
+        for (int j = 0; j < width; j++)
+            device_img[j + i * width] = img.at<uchar>(j, i);
+
+    return device_img;
 }
 
 Rgb *img_to_device(cv::Mat img)
@@ -43,6 +66,19 @@ Rgb *img_to_device(cv::Mat img)
     return device_img;
 }
 
+double *empty_img_device_grey(cv::Mat img)
+{
+    double *device_img;
+    int width = img.rows;
+    int height = img.cols;
+    cudaMallocManaged(&device_img, width * height * sizeof (double));
+
+    for (int i = 0; i < height; i++)
+        for (int j = 0; j < width; j++)
+            device_img[j + i * width] = 0.0;
+
+    return device_img;
+}
 
 Rgb *empty_img_device(cv::Mat img)
 {
@@ -140,9 +176,16 @@ void kernel_nlm_host(Rgb* device_img, Rgb* img, int width, int height, int conv_
     nlm<<<gridSize, blockSize>>>(device_img, img, width, height, conv_size, block_radius, h_param);
 }
 
-void kernel_edge_detect(Rgb* device_img, Rgb* img, int conv_size, double otsu_threshold)
+void kernel_edge_detect(double* device_img, double* img, int width, int height, int conv_size, double otsu_threshold)
 {
-    std::cout << otsu_threshold << std::endl;
+    int mask1[3][3] = {{-1, -2, -1}, {0, 0, 0}, {1, 2, 1}};
+    int mask2[3][3] = {{-1, 0, 1}, {-2, 0, 2}, {-1, 0, 1}};
+    dim3 blockSize = dim3(TILE_WIDTH, TILE_WIDTH);
+    int bx = (width + blockSize.x - 1) / blockSize.x;
+    int by = (height + blockSize.y - 1) / blockSize.y;
+    dim3 gridSize = dim3(bx, by);
+    sobel_conv<<<gridSize, blockSize>>>(device_img, img, width, height, conv_size, mask1, mask2);
+
     /*cv::Mat dst;
     cv::Mat tmp_image;
     double otsu_threshold = cv::threshold(image, dst, 0, 255, CV_THRESH_BINARY | CV_THRESH_OTSU);
