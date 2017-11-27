@@ -1,5 +1,4 @@
 #include <iostream>
-#include "timer/hh"
 #include <string>  
 #include <valarray>
 #include "opencv2/core/core.hpp"
