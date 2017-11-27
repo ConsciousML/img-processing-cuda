@@ -15,9 +15,9 @@ struct scoped_timer {
 
   ~scoped_timer()
   {
-    seconds = std::chrono::duration_cast<std::chrono::nanoseconds>
+    seconds = std::chrono::duration_cast<std::chrono::seconds>
       (steady_clock::now() - t0).count();
-    myfile  << seconds << " ms" << std::endl;
+    myfile  << seconds << " s" << std::endl;
   }
   double  & seconds;
   steady_clock::time_point      t0;
