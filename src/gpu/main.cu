@@ -47,9 +47,9 @@ int main(int argc, char** argv)
     Rgb* device_dst;
     Rgb* device_img;
     Rgb* out;
-    double* device_dst_grey;
+    Rgb* device_dst_grey;
     double* device_img_grey;
-    double* out_grey;
+    Rgb* out_grey;
 
     cv::Mat grey_img;
     if (func_name != "edge_detect")
@@ -61,9 +61,9 @@ int main(int argc, char** argv)
     else
     {
         cv::cvtColor(image, grey_img, cv::COLOR_BGR2GRAY);
-        device_dst_grey = empty_img_device_grey(grey_img);
+        device_dst_grey = empty_img_device(grey_img);
         device_img_grey = img_to_device_grey(grey_img);
-        out_grey = (double*)malloc(width * height * sizeof (double));
+        out_grey = (Rgb*)malloc(width * height * sizeof (Rgb));
     }
 
     if (func_name == "pixelize")
@@ -108,7 +108,7 @@ int main(int argc, char** argv)
     }
     else
     {
-        cudaMemcpy(out_grey, device_dst_grey, height * width * sizeof (double), cudaMemcpyDeviceToHost);
+        cudaMemcpy(out_grey, device_dst_grey, height * width * sizeof (Rgb), cudaMemcpyDeviceToHost);
 
         device_to_img_grey(out_grey, grey_img);
 
@@ -118,5 +118,7 @@ int main(int argc, char** argv)
         cv::imshow("Display Window", grey_img);
     }
     cv::waitKey(0);
+    grey_img.release();
+    image.release();
     return 0;
 }

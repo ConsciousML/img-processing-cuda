@@ -15,12 +15,47 @@
 //#define BLOCK_W (TILE_WIDTH + (2 * R))
 //#define BLOCK_H (TILE_HEIGHT + (2 * R))
 
-__global__ void sobel_conv(double *device_img, double* img, int width, int height, int conv_size, int mask1[][3], int mask2[][3])
+__global__ void sobel_conv(Rgb *device_img, double* img, double *grad, double *dir, int width, int height, int conv_size, int mask1[][3], int mask2[][3])
 {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
     if (x >= width or y >= height)
         return;
+    /*
+    double sum1 = 0.0;
+    double sum2 = 0.0;
+    int u = 0;
+    int v = 0;
+    double cnt1 = 0;
+    double cnt2 = 0;
+    for (int j = y - conv_size; j <= y + conv_size; j++)
+    {
+        for (int i = x - conv_size; i <= x + conv_size; i++)
+        {
+            if (i >= 0 and j >= 0 and i < width and j < height)
+            {
+                int weight1 = mask1[u][v];
+                int weight2 = mask2[u][v];
+                //auto pix = image.at<uchar>(i, j);
+                auto pix = img[i + j * width];
+                sum1 += pix * weight1;
+                sum2 += pix * weight2;
+                cnt1 += abs(weight1);
+                cnt2 += abs(weight2);
+            }
+            v++;
+        }
+        u++;
+        v = 0;
+    }
+    double g = sqrt(pow(sum1, 2) + pow(sum2, 2));
+    //double d = atan2(sum2, sum1);
+    //d = (d > 0 ? d : (2 * M_PI + d)) * 360 / (2 * M_PI);
+    grad[x + y * width] = g;
+    //dir[x + y * width] = d;
+    //device_img[x + y * width] = img[x + y * width];
+    */
+    device_img[x + y * width].r = img[x + y * width];
 }
 
 __device__ void conv(Rgb *image, Rgb& rgb, int width, int height, int x1, int y1, int x2, int y2, int conv_size)

@@ -17,7 +17,7 @@ struct Rgb {
     double b;
 };
 
-__global__ void sobel_conv(double *device_img, double* img, int width, int height, int conv_size, int mask1[][3], int mask2[][3]);
+__global__ void sobel_conv(Rgb *device_img, double* img, double *grad, double *dir, int width, int height, int conv_size, int mask1[][3], int mask2[][3]);
 __global__ void shared_knn(Rgb* device_img, Rgb* img, int width, int height, int conv_size, double h_param);
 __global__ void nlm(Rgb* device_img, Rgb* img, int width, int height, int conv_size, int block_radius, double h_param);
 __global__ void knn(Rgb* device_img, Rgb* img, int width, int height, int conv_size, double h_param);
