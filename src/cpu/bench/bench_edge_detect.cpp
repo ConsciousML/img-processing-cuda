@@ -29,7 +29,7 @@ int main()
       res = conv_with_mask(res, 1);
     }
   }
-  std::string path_image2("../../../pictures/Lenna514.jpg");
+  std::string path_image2("../../../pictures/Lenna514.png");
   Mat image2;
   image2 = imread(path_image2, 0);
   if (!image2.data)

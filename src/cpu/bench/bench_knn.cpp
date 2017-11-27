@@ -1,4 +1,3 @@
-#include "non_local_means_cpu.hh"
 #include <iostream>
 #include "timer.hh"
 #include <string>  
@@ -21,7 +20,7 @@ int main()
   std::string path_image("../../../pictures/lenna.jpg");
   image = imread(path_image, CV_LOAD_IMAGE_UNCHANGED);
   double param_decay = 150.0;
-  for(size_t j = 2; j <= 8; j = j + 1)
+  for(size_t j = 2; j <= 24; j = j + 2)
   {
     {
       t = 1;
@@ -29,7 +28,7 @@ int main()
       res = knn(image, j, param_decay);
     }
   }
-  std::string path_image2("../../../pictures/Lenna514.jpg");
+  std::string path_image2("../../../pictures/Lenna514.png");
   Mat image2;
   image2 = imread(path_image2, CV_LOAD_IMAGE_UNCHANGED);
   if (!image2.data)
@@ -37,7 +36,7 @@ int main()
     cout << "Could not open or find the image" << std::endl;
     return 1;
   }
-  for(size_t j = 2; j <= 8; j = j + 1)
+  for(size_t j = 2; j <= 24; j = j + 2)
   {
     {
       t = 1;
