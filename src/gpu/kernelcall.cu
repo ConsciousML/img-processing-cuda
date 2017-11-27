@@ -191,7 +191,6 @@ void kernel_edge_detect(Rgb* device_img, double* img, int width, int height, int
     hysterysis<<<gridSize, blockSize>>>(device_img, changed_device, width, height, otsu_threshold * 0.5);
     cudaDeviceSynchronize();
     cudaMemcpy(changed_host, changed_device, sizeof (int), cudaMemcpyDeviceToHost);
-    std::cout << changed_host << std::endl;
     while (changed_host)
     {
         hysterysis<<<gridSize, blockSize>>>(device_img, changed_device, width, height, otsu_threshold * 0.5);
