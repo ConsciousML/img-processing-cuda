@@ -15,13 +15,13 @@
 //#define BLOCK_W (TILE_WIDTH + (2 * R))
 //#define BLOCK_H (TILE_HEIGHT + (2 * R))
 
-void device_to_img_grey(double *device_img, cv::Mat& img)
+void device_to_img_grey(Rgb *device_img, cv::Mat& img)
 {
     int width = img.rows;
     int height = img.cols;
     for (int i = 0; i < height; i++)
         for (int j = 0; j < width; j++)
-            img.at<uchar>(j, i) = device_img[j + i * width];
+            img.at<uchar>(j, i) = device_img[j + i * width].r;
 }
 
 void device_to_img(Rgb *device_img, cv::Mat& img)
@@ -34,7 +34,6 @@ void device_to_img(Rgb *device_img, cv::Mat& img)
             img.at<cv::Vec3b>(j, i)[0] = device_img[j + i * width].r;
             img.at<cv::Vec3b>(j, i)[1] = device_img[j + i * width].g;
             img.at<cv::Vec3b>(j, i)[2] = device_img[j + i * width].b;
-
         }
 }
 
@@ -76,7 +75,6 @@ double *empty_img_device_grey(cv::Mat img)
     for (int i = 0; i < height; i++)
         for (int j = 0; j < width; j++)
             device_img[j + i * width] = 0.0;
-
     return device_img;
 }
 
@@ -176,22 +174,34 @@ void kernel_nlm_host(Rgb* device_img, Rgb* img, int width, int height, int conv_
     nlm<<<gridSize, blockSize>>>(device_img, img, width, height, conv_size, block_radius, h_param);
 }
 
-void kernel_edge_detect(double* device_img, double* img, int width, int height, int conv_size, double otsu_threshold)
+void kernel_edge_detect(Rgb* device_img, double* img, int width, int height, int conv_size, double otsu_threshold)
 {
-    int mask1[3][3] = {{-1, -2, -1}, {0, 0, 0}, {1, 2, 1}};
-    int mask2[3][3] = {{-1, 0, 1}, {-2, 0, 2}, {-1, 0, 1}};
     dim3 blockSize = dim3(TILE_WIDTH, TILE_WIDTH);
     int bx = (width + blockSize.x - 1) / blockSize.x;
     int by = (height + blockSize.y - 1) / blockSize.y;
     dim3 gridSize = dim3(bx, by);
-    sobel_conv<<<gridSize, blockSize>>>(device_img, img, width, height, conv_size, mask1, mask2);
 
+    sobel_conv<<<gridSize, blockSize>>>(device_img, img, width, height, conv_size);
+    cudaDeviceSynchronize();
+    non_max_suppr<<<gridSize, blockSize>>>(device_img, img, width, height, otsu_threshold);
+    cudaDeviceSynchronize();
+    int *changed_device;
+    int *changed_host;
+    cudaMallocManaged(&changed_device, 1 * sizeof (int));
+    hysterysis<<<gridSize, blockSize>>>(device_img, changed_device, width, height, otsu_threshold * 0.5);
+    cudaDeviceSynchronize();
+    cudaMemcpy(changed_host, changed_device, sizeof (int), cudaMemcpyDeviceToHost);
+    std::cout << changed_host << std::endl;
+    while (changed_host)
+    {
+        hysterysis<<<gridSize, blockSize>>>(device_img, changed_device, width, height, otsu_threshold * 0.5);
+        cudaDeviceSynchronize();
+        cudaMemcpy(changed_host, changed_device, sizeof (int), cudaMemcpyDeviceToHost);
+    }
     /*cv::Mat dst;
     cv::Mat tmp_image;
     double otsu_threshold = cv::threshold(image, dst, 0, 255, CV_THRESH_BINARY | CV_THRESH_OTSU);
     auto edge_image = image.clone();
-    double *grad = new double[image.cols * image.rows];
-    double *dir = new double[image.cols * image.rows];
     int mask1[3][3] = {{-1, -2, -1}, {0, 0, 0}, {1, 2, 1}};
     int mask2[3][3] = {{-1, 0, 1}, {-2, 0, 2}, {-1, 0, 1}};
     for (int y = 0; y < image.cols; y++)

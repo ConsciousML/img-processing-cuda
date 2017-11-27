@@ -2,6 +2,7 @@
 #include <iostream>
 #include <valarray>
 #include <assert.h>
+#include <math.h>
 #include "opencv2/core/core.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 #include "opencv2/highgui/highgui.hpp"
@@ -15,12 +16,176 @@
 //#define BLOCK_W (TILE_WIDTH + (2 * R))
 //#define BLOCK_H (TILE_HEIGHT + (2 * R))
 
-__global__ void sobel_conv(double *device_img, double* img, int width, int height, int conv_size, int mask1[][3], int mask2[][3])
+__device__ int mask1[3][3] = {{-1, -2, -1}, {0, 0, 0}, {1, 2, 1}};
+__device__ int mask2[3][3] = {{-1, 0, 1}, {-2, 0, 2}, {-1, 0, 1}};
+
+__global__ void hysterysis(Rgb *device_img, int* changed, int width, int height, double t)
 {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
     if (x >= width or y >= height)
         return;
+    if (device_img[x + y * width].r == 255)
+        return;
+
+    double curr_dir = device_img[x + y * width].b;
+    double curr_grad = device_img[x + y * width].g;
+    changed[0] = 0;
+    if (22.5 <= curr_dir and curr_dir < 67.5
+            and (x - 1) >= 0
+            and (y + 1) < height
+            and (x + 1) < width
+            and (y - 1) >= 0)
+    {
+        double dir1 = device_img[(x - 1) + (y + 1) * width].b;
+        double dir2 = device_img[(x + 1) + (y - 1) * width].b;
+        if (((22.5 <= dir1 and dir1 < 67.5) or (22.5 <= dir2 and dir2 < 67.5)) and curr_grad > t)
+        {
+            device_img[x + y * width].r = 255;
+            changed[0] = 1;
+        }
+    }
+    else if (67.5 <= curr_dir and curr_dir < 112.5
+            and (x - 1) >= 0
+            and (x + 1) < width)
+    {
+        double dir1 = device_img[(x - 1) + y * width].b;
+        double dir2 = device_img[(x + 1) + y * width].b;
+        if (((67.5 <= dir1 and dir1 < 112.5) or (67.5 < dir2 and dir2 < 112.5)) and curr_grad > t)
+        {
+            device_img[x + y * width].r = 255;
+            changed[0] = 1;
+        }
+    }
+    else if (112.5 <= curr_dir and curr_dir < 157.5
+            and (x - 1) >= 0
+            and (y - 1) >= 0
+            and (x + 1) < width
+            and (y + 1) < height)
+    {
+        double dir1 = device_img[(x - 1) + (y - 1) * width].b;
+        double dir2 = device_img[(x + 1) + (y + 1) * width].b;
+        if (((112.5 <= dir1 and dir1 < 157.5) or (112.5 <= dir2 and dir2 < 157.5)) and curr_grad > t)
+        {
+            device_img[x + y * width].r = 255;
+            changed[0] = 1;
+        }
+    }
+    else if (((0 <= curr_dir and curr_dir < 22.5)
+                or (157.5 <= curr_dir and curr_dir <= 180.0))
+            and (y - 1) >= 0
+            and (y + 1) < height)
+    {
+        double dir1 = device_img[x + (y - 1) * width].b;
+        double dir2 = device_img[x + (y + 1) * width].b;
+        if ((((0 <= dir1 and dir1 < 22.5) and (157.5 <= dir1 and dir1 <= 180.5))
+                    or ((0 <= dir2 and dir2 < 22.5) and (157.5 <= dir2 and dir2 <= 180.5))) and curr_grad > t)
+        {
+            device_img[x + y * width].r = 255;
+            changed[0] = 1;
+        }
+    }
+}
+
+__global__ void non_max_suppr(Rgb *device_img, double* img, int width, int height, double thresh)
+{
+    int x = blockIdx.x * blockDim.x + threadIdx.x;
+    int y = blockIdx.y * blockDim.y + threadIdx.y;
+    if (x >= width or y >= height)
+        return;
+    double curr_dir = device_img[x + y * width].b;
+    double curr_grad = device_img[x + y * width].g;
+    if (22.5 <= curr_dir and curr_dir < 67.5
+            and (x - 1) >= 0
+            and (y + 1) < height
+            and (x + 1) < width
+            and (y - 1) >= 0)
+    {
+        double val1 = device_img[(x - 1) + (y + 1) * width].g;
+        double val2 = device_img[(x + 1) + (y - 1) * width].g;
+        if (val1 < curr_grad and val2 < curr_grad and curr_grad > thresh)
+            device_img[x + y * width].r = 255;
+        else
+            device_img[x + y * width].r = 0;
+    }
+    else if (67.5 <= curr_dir and curr_dir < 112.5
+            and (x - 1) >= 0
+            and (x + 1) < width)
+    {
+        double val1 = device_img[(x - 1) + y * width].g;
+        double val2 = device_img[(x + 1) + y * width].g;
+        if (val1 < curr_grad and val2 < curr_grad and curr_grad > thresh)
+            device_img[x + y * width].r = 255;
+        else
+            device_img[x + y * width].r = 0;
+    }
+    else if (112.5 <= curr_dir and curr_dir < 157.5
+            and (x - 1) >= 0
+            and (y - 1) >= 0
+            and (x + 1) < width
+            and (y + 1) < height)
+    {
+        double val1 = device_img[(x - 1) + (y - 1) * width].g;
+        double val2 = device_img[(x + 1) + (y + 1) * width].g;
+        if (val1 < curr_grad and val2 < curr_grad and curr_grad > thresh)
+            device_img[x + y * width].r = 255;
+        else
+            device_img[x + y * width].r = 0;
+    }
+    else if (((0 <= curr_dir and curr_dir < 22.5)
+                or (157.5 <= curr_dir and curr_dir <= 180.0))
+            and (y - 1) >= 0
+            and (y + 1) < height)
+    {
+        double val1 = device_img[x + (y - 1) * width].g;
+        double val2 = device_img[x + (y + 1) * width].g;
+        if (val1 < curr_grad and val2 < curr_grad and curr_grad > thresh)
+            device_img[x + y * width].r = 255;
+        else
+            device_img[x + y * width].r = 0;
+    }
+}
+
+__global__ void sobel_conv(Rgb *device_img, double* img, int width, int height, int conv_size)
+{
+
+    int x = blockIdx.x * blockDim.x + threadIdx.x;
+    int y = blockIdx.y * blockDim.y + threadIdx.y;
+    if (x >= width or y >= height)
+        return;
+    double sum1 = 0.0;
+    double sum2 = 0.0;
+    int u = 0;
+    int v = 0;
+    double cnt1 = 0;
+    double cnt2 = 0;
+    for (int j = y - conv_size; j <= y + conv_size; j++)
+    {
+        for (int i = x - conv_size; i <= x + conv_size; i++)
+        {
+            if (i >= 0 and j >= 0 and i < width and j < height)
+            {
+                int weight1 = mask1[u][v];
+                int weight2 = mask2[u][v];
+                //auto pix = image.at<uchar>(i, j);
+                auto pix = img[i + j * width];
+                sum1 += pix * weight1;
+                sum2 += pix * weight2;
+                cnt1 += abs(weight1);
+                cnt2 += abs(weight2);
+            }
+            v++;
+        }
+        u++;
+        v = 0;
+    }
+    double g = std::sqrt(std::pow(sum1, 2) + std::pow(sum2, 2));
+    double d = atan2(sum2, sum1);
+    d = (d > 0 ? d : (2 * M_PI + d)) * 360 / (2 * M_PI);
+    //device_img[x + y * width].r = img[x + y * width];
+    device_img[x + y * width].g = g;
+    device_img[x + y * width].b = d;
+
 }
 
 __device__ void conv(Rgb *image, Rgb& rgb, int width, int height, int x1, int y1, int x2, int y2, int conv_size)
@@ -60,7 +225,7 @@ __device__ void gauss_conv_nlm(Rgb *image, Rgb& res, int x, int y, int width, in
         {
             if (i >= 0 and j >= 0 and i < width and j < height)
             {
-		auto u = Rgb(0, 0, 0);
+                auto u = Rgb(0, 0, 0);
                 conv(image, u, width, height, y, x, j, i, block_radius);
                 auto uy = image[j * width + i];
                 double c1 = std::exp(-(std::pow(std::abs(i + j - (x + y)), 2)) / (double)std::pow(conv_size, 2));
@@ -137,8 +302,8 @@ __global__ void shared_knn(Rgb* device_img, Rgb* img, int width, int height, int
                     double h_div = std::pow(h_param, 2);
                     double c1 = std::exp(-(std::pow(std::abs(col_i + row_i + i + j - (row_o + col_o)), 2)) / (double)std::pow(r, 2));
                     auto c2 = Rgb(std::exp(-(std::pow(std::abs(uy.r - ux.r), 2)) / h_div),
-                        std::exp(-(std::pow(std::abs(uy.g - ux.g), 2)) / h_div),
-                        std::exp(-(std::pow(std::abs(uy.b - ux.b), 2)) / h_div));
+                            std::exp(-(std::pow(std::abs(uy.g - ux.g), 2)) / h_div),
+                            std::exp(-(std::pow(std::abs(uy.b - ux.b), 2)) / h_div));
 
                     sum.r += uy.r * c1 * c2.r;
                     sum.g += uy.g * c1 * c2.g;
