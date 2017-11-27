@@ -52,19 +52,9 @@ int main(int argc, char** argv)
     Rgb* out_grey;
 
     cv::Mat grey_img;
-    if (func_name != "edge_detect")
-    {
-        device_dst = empty_img_device(image);
-        device_img = img_to_device(image);
-        out = (Rgb*)malloc(width * height * sizeof (Rgb));
-    }
-    else
-    {
-        cv::cvtColor(image, grey_img, cv::COLOR_BGR2GRAY);
-        device_dst_grey = empty_img_device(grey_img);
-        device_img_grey = img_to_device_grey(grey_img);
-        out_grey = (Rgb*)malloc(width * height * sizeof (Rgb));
-    }
+    device_dst = empty_img_device(image);
+    device_img = img_to_device(image);
+    out = (Rgb*)malloc(width * height * sizeof (Rgb));
 
     if (func_name == "pixelize")
         kernel_pixelize_host(device_dst, device_img, width, height, std::stoi(argv[3]));
@@ -75,13 +65,21 @@ int main(int argc, char** argv)
     else if (func_name == "knn")
         kernel_knn_host(device_dst, device_img, width, height, std::stoi(argv[3]), std::stod(argv[4]));
     else if (func_name == "shared_knn")
-	kernel_shared_knn_host(device_dst, device_img, width, height, std::stoi(argv[3]), std::stod(argv[4]));
+        kernel_shared_knn_host(device_dst, device_img, width, height, std::stoi(argv[3]), std::stod(argv[4]));
     else if (func_name == "nlm")
         kernel_nlm_host(device_dst, device_img, width, height, std::stoi(argv[3]), std::stoi(argv[4]), std::stod(argv[5]));
     else if (func_name == "edge_detect")
     {
+        /*kernel_shared_knn_host(device_dst, device_img, width, height, 2, 150.0);
+        kernel_nlm_host(device_dst, device_img, width, height, 2, 2, 100.0);
+        cudaMemcpy(out, device_dst, height * width * sizeof (Rgb), cudaMemcpyDeviceToHost);
+        device_to_img(out, image);*/
+        cv::cvtColor(image, grey_img, cv::COLOR_BGR2GRAY);
+        device_dst_grey = empty_img_device(grey_img);
+        device_img_grey = img_to_device_grey(grey_img);
+        out_grey = (Rgb*)malloc(width * height * sizeof (Rgb));
         cv::Mat dst;
-	double otsu_threshold = cv::threshold(grey_img, dst, 0, 255, CV_THRESH_BINARY | CV_THRESH_OTSU);
+        double otsu_threshold = cv::threshold(grey_img, dst, 0, 255, CV_THRESH_BINARY | CV_THRESH_OTSU);
         kernel_edge_detect(device_dst_grey, device_img_grey, width, height, 1, otsu_threshold);
     }
     else

@@ -1,0 +1,28 @@
+#ifndef TIMER_HH_
+#define TIMER_HH_
+
+#include <chrono>
+#include <iostream>
+#include <fstream>
+
+using std::chrono::duration_cast;
+using std::chrono::nanoseconds;
+using std::chrono::steady_clock;
+struct scoped_timer {
+  /* Init the timer: get the current time */
+  scoped_timer(double & s, std::ofstream & f) : seconds(s), t0(steady_clock::now()),myfile(f) {
+  }
+
+  ~scoped_timer()
+  {
+    seconds = std::chrono::duration_cast<std::chrono::seconds>
+      (steady_clock::now() - t0).count();
+    myfile  << seconds << " s" << std::endl;
+  }
+  double  & seconds;
+  steady_clock::time_point      t0;
+  std::ofstream  & myfile;
+
+};
+
+#endif
