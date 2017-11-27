@@ -94,6 +94,7 @@ int main(int argc, char** argv)
     }
 
     cudaDeviceSynchronize();
+    cv::namedWindow("Display Window", CV_WINDOW_AUTOSIZE);
     if (func_name != "edge_detect")
     {
         cudaMemcpy(out, device_dst, height * width * sizeof (Rgb), cudaMemcpyDeviceToHost);
@@ -103,19 +104,19 @@ int main(int argc, char** argv)
         cudaFree(device_dst);
         cudaFree(device_img);
         free(out);
+        cv::imshow("Display Window", image);
     }
     else
     {
         cudaMemcpy(out_grey, device_dst_grey, height * width * sizeof (double), cudaMemcpyDeviceToHost);
 
-        device_to_img_grey(out_grey, image);
+        device_to_img_grey(out_grey, grey_img);
 
         cudaFree(device_dst_grey);
         cudaFree(device_img_grey);
         free(out_grey);
+        cv::imshow("Display Window", grey_img);
     }
-    cv::namedWindow("Display Window", CV_WINDOW_AUTOSIZE);
-    cv::imshow("Display Window", image);
     cv::waitKey(0);
     return 0;
 }
