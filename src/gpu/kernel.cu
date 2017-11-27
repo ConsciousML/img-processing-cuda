@@ -15,6 +15,14 @@
 //#define BLOCK_W (TILE_WIDTH + (2 * R))
 //#define BLOCK_H (TILE_HEIGHT + (2 * R))
 
+__global__ void sobel_conv(double *device_img, double* img, int width, int height, int conv_size, int mask1[][3], int mask2[][3])
+{
+    int x = blockIdx.x * blockDim.x + threadIdx.x;
+    int y = blockIdx.y * blockDim.y + threadIdx.y;
+    if (x >= width or y >= height)
+        return;
+}
+
 __device__ void conv(Rgb *image, Rgb& rgb, int width, int height, int x1, int y1, int x2, int y2, int conv_size)
 {
     int cnt = 0;

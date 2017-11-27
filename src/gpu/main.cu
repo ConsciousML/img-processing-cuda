@@ -16,9 +16,9 @@
 
 int main(int argc, char** argv)
 {
-    if (argc < 4)
+    if (argc < 3)
     {
-        std::cout << "usage: main <Image_Path> <Func_name> <Conv_size>" << std::endl;
+        std::cout << "usage: main <Image_Path> <Func_name>" << std::endl;
         return 1;
     }
     std::string func_name = argv[2];
@@ -34,6 +34,7 @@ int main(int argc, char** argv)
     }
     cv::Mat image;
     image = cv::imread(argv[1], CV_LOAD_IMAGE_UNCHANGED);
+    //image = cv::imread(argv[1], CV_LOAD_IMAGE_GRAYSCALE);
     if (!image.data)
     {
         std::cout << "Could not open or find the image" << std::endl;
@@ -43,9 +44,27 @@ int main(int argc, char** argv)
     int width = image.rows;
     int height = image.cols;
 
-    Rgb* device_dst = empty_img_device(image);
-    Rgb* device_img = img_to_device(image);
-    Rgb* out = (Rgb*)malloc(width * height * sizeof (Rgb));
+    Rgb* device_dst;
+    Rgb* device_img;
+    Rgb* out;
+    double* device_dst_grey;
+    double* device_img_grey;
+    double* out_grey;
+
+    cv::Mat grey_img;
+    if (func_name != "edge_detect")
+    {
+        device_dst = empty_img_device(image);
+        device_img = img_to_device(image);
+        out = (Rgb*)malloc(width * height * sizeof (Rgb));
+    }
+    else
+    {
+        cv::cvtColor(image, grey_img, cv::COLOR_BGR2GRAY);
+        device_dst_grey = empty_img_device_grey(grey_img);
+        device_img_grey = img_to_device_grey(grey_img);
+        out_grey = (double*)malloc(width * height * sizeof (double));
+    }
 
     if (func_name == "pixelize")
         kernel_pixelize_host(device_dst, device_img, width, height, std::stoi(argv[3]));
@@ -59,6 +78,12 @@ int main(int argc, char** argv)
 	kernel_shared_knn_host(device_dst, device_img, width, height, std::stoi(argv[3]), std::stod(argv[4]));
     else if (func_name == "nlm")
         kernel_nlm_host(device_dst, device_img, width, height, std::stoi(argv[3]), std::stoi(argv[4]), std::stod(argv[5]));
+    else if (func_name == "edge_detect")
+    {
+        cv::Mat dst;
+	double otsu_threshold = cv::threshold(grey_img, dst, 0, 255, CV_THRESH_BINARY | CV_THRESH_OTSU);
+        kernel_edge_detect(device_dst_grey, device_img_grey, width, height, 1, otsu_threshold);
+    }
     else
     {
         std::cout << "error: function name '" << func_name << "' is not known." << std::endl;
@@ -69,16 +94,29 @@ int main(int argc, char** argv)
     }
 
     cudaDeviceSynchronize();
-    cudaMemcpy(out, device_dst, height * width * sizeof (Rgb), cudaMemcpyDeviceToHost);
-
-    device_to_img(out, image);
-
-    cudaFree(device_dst);
-    cudaFree(device_img);
-    free(out);
-
     cv::namedWindow("Display Window", CV_WINDOW_AUTOSIZE);
-    cv::imshow("Display Window", image);
+    if (func_name != "edge_detect")
+    {
+        cudaMemcpy(out, device_dst, height * width * sizeof (Rgb), cudaMemcpyDeviceToHost);
+
+        device_to_img(out, image);
+
+        cudaFree(device_dst);
+        cudaFree(device_img);
+        free(out);
+        cv::imshow("Display Window", image);
+    }
+    else
+    {
+        cudaMemcpy(out_grey, device_dst_grey, height * width * sizeof (double), cudaMemcpyDeviceToHost);
+
+        device_to_img_grey(out_grey, grey_img);
+
+        cudaFree(device_dst_grey);
+        cudaFree(device_img_grey);
+        free(out_grey);
+        cv::imshow("Display Window", grey_img);
+    }
     cv::waitKey(0);
     return 0;
 }
