@@ -140,3 +140,35 @@ void kernel_nlm_host(Rgb* device_img, Rgb* img, int width, int height, int conv_
     nlm<<<gridSize, blockSize>>>(device_img, img, width, height, conv_size, block_radius, h_param);
 }
 
+void kernel_edge_detect(Rgb* device_img, Rgb* img, int conv_size, double otsu_threshold)
+{
+    std::cout << otsu_threshold << std::endl;
+    /*cv::Mat dst;
+    cv::Mat tmp_image;
+    double otsu_threshold = cv::threshold(image, dst, 0, 255, CV_THRESH_BINARY | CV_THRESH_OTSU);
+    auto edge_image = image.clone();
+    double *grad = new double[image.cols * image.rows];
+    double *dir = new double[image.cols * image.rows];
+    int mask1[3][3] = {{-1, -2, -1}, {0, 0, 0}, {1, 2, 1}};
+    int mask2[3][3] = {{-1, 0, 1}, {-2, 0, 2}, {-1, 0, 1}};
+    for (int y = 0; y < image.cols; y++)
+    {
+        for (int x = 0; x < image.rows; x++)
+        {
+           auto pair = conv_mask(image, x, y, conv_size, mask1, mask2);
+           grad[x + y * image.rows] = pair.first;
+           dir[x + y * image.rows] = pair.second / 2;
+        }
+    }
+    non_max_suppr(edge_image, grad, dir, otsu_threshold);
+    bool changed = hysterysis(edge_image, grad, dir, otsu_threshold * 0.5);
+    std::cout << changed << std::endl;
+    while (changed)
+    {
+        changed = hysterysis(edge_image, grad, dir, otsu_threshold * 0.5);
+        std::cout << changed << std::endl;
+    }
+    return edge_image;*/
+}
+
+

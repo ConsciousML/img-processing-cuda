@@ -1,3 +1,9 @@
+to compile the project run the following commands:
+mkdir build
+cd build
+cmake..
+make
+
 usage: ./main <Image_Path> <Func_name> <Func_param>
 
 algorithms:

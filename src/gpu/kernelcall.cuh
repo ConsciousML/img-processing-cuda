@@ -8,6 +8,7 @@
 Rgb *img_to_device(cv::Mat img);
 Rgb *empty_img_device(cv::Mat img);
 void device_to_img(Rgb *device_img, cv::Mat& img);
+void kernel_edge_detect(Rgb* device_img, Rgb* img, int conv_size, double otsu_threshold);
 void kernel_shared_knn_host(Rgb* device_img, Rgb* img, int width, int height, int r, double h_param);
 void kernel_knn_host(Rgb* device_img, Rgb* img, int width, int height, int conv_size, double h_param);
 void kernel_nlm_host(Rgb* device_img, Rgb* img, int width, int height, int conv_size, int block_size, double h_param);

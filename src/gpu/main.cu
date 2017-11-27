@@ -16,9 +16,9 @@
 
 int main(int argc, char** argv)
 {
-    if (argc < 4)
+    if (argc < 3)
     {
-        std::cout << "usage: main <Image_Path> <Func_name> <Conv_size>" << std::endl;
+        std::cout << "usage: main <Image_Path> <Func_name>" << std::endl;
         return 1;
     }
     std::string func_name = argv[2];
@@ -34,6 +34,7 @@ int main(int argc, char** argv)
     }
     cv::Mat image;
     image = cv::imread(argv[1], CV_LOAD_IMAGE_UNCHANGED);
+    //image = cv::imread(argv[1], CV_LOAD_IMAGE_GRAYSCALE);
     if (!image.data)
     {
         std::cout << "Could not open or find the image" << std::endl;
@@ -59,6 +60,15 @@ int main(int argc, char** argv)
 	kernel_shared_knn_host(device_dst, device_img, width, height, std::stoi(argv[3]), std::stod(argv[4]));
     else if (func_name == "nlm")
         kernel_nlm_host(device_dst, device_img, width, height, std::stoi(argv[3]), std::stoi(argv[4]), std::stod(argv[5]));
+    else if (func_name == "edge_detect")
+    {
+        cv::Mat dst;
+        cv::Mat grey_img;
+        cv::cvtColor(image, grey_img, cv::COLOR_BGR2GRAY);
+	double otsu_threshold = cv::threshold(grey_img, dst, 0, 255, CV_THRESH_BINARY | CV_THRESH_OTSU);
+        std::cout << otsu_threshold << std::endl;
+        //kernel_edge_detect(device_dst, device_img, 1, otsu_threshold);
+    }
     else
     {
         std::cout << "error: function name '" << func_name << "' is not known." << std::endl;
