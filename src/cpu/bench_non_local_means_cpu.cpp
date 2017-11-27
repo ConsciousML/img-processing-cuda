@@ -18,18 +18,21 @@ int main()
   Mat res;
   image;
   std::string path_image("./main ../../../pictures/lenna.jpg");
-//  size_t conv_size = 2;
- // size_t radius = 2;
+  //  size_t conv_size = 2;
+  // size_t radius = 2;
   double param_decay = 150.0;
-  for(size_t i = 2; i < 32; i = i * 2)
+  for(size_t i = 2; i <= 32; i = i * 2)
   {
-    for(size_t j = 2; j < 32; j = j * 2)
+    for(size_t j = 2; j <= 32; j = j * 2)
     {
+      std::cout<<"hhh\n";
       {
+        t = 1;
         scoped_timer timer(t, myfile);
         res = non_local_means_cpu(image, i, j, param_decay);
       }
     }
 
   }
+  myfile.close();
 }

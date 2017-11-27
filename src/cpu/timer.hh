@@ -18,7 +18,7 @@ struct scoped_timer {
   /* hint: seconds = double(nanoseconds count) / 1e9 */
   ~scoped_timer()
   {
-    seconds = std::chrono::duration_cast<std::chrono::microseconds>
+    seconds = std::chrono::duration_cast<std::chrono::nanoseconds>
       (steady_clock::now() - t0).count();
    // myfile.open ("time_rec.txt",  std::ofstream::out | std::ofstream::app);
    myfile  << seconds << " ms" << std::endl;
