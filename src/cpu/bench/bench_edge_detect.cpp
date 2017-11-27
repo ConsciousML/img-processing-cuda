@@ -6,7 +6,7 @@
 #include "opencv2/imgproc/imgproc.hpp"
 #include "opencv2/highgui/highgui.hpp"
 #include "edge_detect.hh"
-#include "edge.hh"
+#include "edge_detect.hh"
 using namespace std;
 using namespace cv;
 int main()
@@ -20,14 +20,10 @@ int main()
   std::string path_image("../../../pictures/lenna.jpg");
   image = imread(path_image, 0);
   double param_decay = 150.0;
-  for(size_t j = 2; j <= 8; j = j + 1)
   {
-    {
-      t = 1;
-      scoped_timer timer(t, myfile);
-      res = knn_grey(image, j, 150.0);
-      res = conv_with_mask(res, 1);
-    }
+    t = 1;
+    scoped_timer timer(t, myfile);
+    res = conv_with_mask(image, 1);
   }
   std::string path_image2("../../../pictures/Lenna514.png");
   Mat image2;
@@ -37,14 +33,36 @@ int main()
     cout << "Could not open or find the image" << std::endl;
     return 1;
   }
-  for(size_t j = 2; j <= 8; j = j + 1)
   {
-    {
-      t = 1;
-      scoped_timer timer(t, myfile);
-      res = knn_grey(image, j, 150.0);
-      res = conv_with_mask(res, 1);
-    }
+    t = 1;
+    scoped_timer timer(t, myfile);
+    res = conv_with_mask(image2, 1);
+  }
+  std::string path_image3("../../../pictures/my_face.jpg");
+  Mat image3;
+  image3 = imread(path_image3, 0);
+  if (!image3.data)
+  {
+    cout << "Could not open or find the image" << std::endl;
+    return 1;
+  }
+  {
+    t = 1;
+    scoped_timer timer(t, myfile);
+    res = conv_with_mask(image3, 1);
+  }
+  std::string path_image4("../../../pictures/temple01.jpg");
+  Mat image4;
+  image4 = imread(path_image4, 0);
+  if (!image4.data)
+  {
+    cout << "Could not open or find the image" << std::endl;
+    return 1;
+  }
+  {
+    t = 1;
+    scoped_timer timer(t, myfile);
+    res = conv_with_mask(image4, 1);
   }
   myfile.close();
 }
