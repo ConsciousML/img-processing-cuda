@@ -178,18 +178,13 @@ void kernel_nlm_host(Rgb* device_img, Rgb* img, int width, int height, int conv_
 
 void kernel_edge_detect(Rgb* device_img, double* img, int width, int height, int conv_size, double otsu_threshold)
 {
-    int mask1[3][3] = {{-1, -2, -1}, {0, 0, 0}, {1, 2, 1}};
-    int mask2[3][3] = {{-1, 0, 1}, {-2, 0, 2}, {-1, 0, 1}};
     dim3 blockSize = dim3(TILE_WIDTH, TILE_WIDTH);
     int bx = (width + blockSize.x - 1) / blockSize.x;
     int by = (height + blockSize.y - 1) / blockSize.y;
     dim3 gridSize = dim3(bx, by);
 
-    double *grad;
-    double *dir;
-
-    sobel_conv<<<gridSize, blockSize>>>(device_img, img, grad, dir, width, height, conv_size, mask1, mask2);
-
+    sobel_conv<<<gridSize, blockSize>>>(device_img, img, width, height, conv_size);
+    cudaDeviceSynchronize();
     /*cv::Mat dst;
     cv::Mat tmp_image;
     double otsu_threshold = cv::threshold(image, dst, 0, 255, CV_THRESH_BINARY | CV_THRESH_OTSU);
@@ -214,8 +209,6 @@ void kernel_edge_detect(Rgb* device_img, double* img, int width, int height, int
         std::cout << changed << std::endl;
     }
     return edge_image;*/
-    delete(grad);
-    delete(dir);
 }
 
 

@@ -2,6 +2,7 @@
 #include <iostream>
 #include <valarray>
 #include <assert.h>
+#include <math.h>
 #include "opencv2/core/core.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 #include "opencv2/highgui/highgui.hpp"
@@ -15,13 +16,15 @@
 //#define BLOCK_W (TILE_WIDTH + (2 * R))
 //#define BLOCK_H (TILE_HEIGHT + (2 * R))
 
-__global__ void sobel_conv(Rgb *device_img, double* img, double *grad, double *dir, int width, int height, int conv_size, int mask1[][3], int mask2[][3])
+__device__ int mask1[3][3] = {{-1, -2, -1}, {0, 0, 0}, {1, 2, 1}};
+__device__ int mask2[3][3] = {{-1, 0, 1}, {-2, 0, 2}, {-1, 0, 1}};
+__global__ void sobel_conv(Rgb *device_img, double* img, int width, int height, int conv_size)
 {
+
     int x = blockIdx.x * blockDim.x + threadIdx.x;
     int y = blockIdx.y * blockDim.y + threadIdx.y;
     if (x >= width or y >= height)
         return;
-    /*
     double sum1 = 0.0;
     double sum2 = 0.0;
     int u = 0;
@@ -48,14 +51,13 @@ __global__ void sobel_conv(Rgb *device_img, double* img, double *grad, double *d
         u++;
         v = 0;
     }
-    double g = sqrt(pow(sum1, 2) + pow(sum2, 2));
-    //double d = atan2(sum2, sum1);
-    //d = (d > 0 ? d : (2 * M_PI + d)) * 360 / (2 * M_PI);
-    grad[x + y * width] = g;
-    //dir[x + y * width] = d;
-    //device_img[x + y * width] = img[x + y * width];
-    */
+    double g = std::sqrt(std::pow(sum1, 2) + std::pow(sum2, 2));
+    double d = atan2(sum2, sum1);
+    d = (d > 0 ? d : (2 * M_PI + d)) * 360 / (2 * M_PI);
     device_img[x + y * width].r = img[x + y * width];
+    device_img[x + y * width].g = g;
+    device_img[x + y * width].b = d;
+
 }
 
 __device__ void conv(Rgb *image, Rgb& rgb, int width, int height, int x1, int y1, int x2, int y2, int conv_size)
