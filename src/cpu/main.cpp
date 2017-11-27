@@ -3,7 +3,7 @@
 #include "opencv2/core/core.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 #include "opencv2/highgui/highgui.hpp"
-#include "convolution.hh"
+#include "edge_detect.hh"
 #include "non_local_means_cpu.hh"
 #include "knn.hh"
 using namespace std;

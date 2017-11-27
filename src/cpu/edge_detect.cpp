@@ -1,5 +1,5 @@
 #include <math.h>
-#include "convolution.hh"
+#include "edge_detect.hh"
 std::valarray<double> simple_conv(cv::Mat image, int x, int y, int conv_size)
 {
     std::valarray<double> rgb = {0, 0, 0};
