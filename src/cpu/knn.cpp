@@ -59,3 +59,49 @@ cv::Mat knn(cv::Mat image, int conv_size, double h_param)
     }
     return knn_img;
 }
+
+double gauss_conv_gray(cv::Mat image, int x, int y, int conv_size, double h_param)
+{
+    double rgb = 0;
+    double cnt = 0;
+    int cx = 0;
+    for (int j = y - conv_size; j < y + conv_size; j++)
+    {
+        for (int i = x - conv_size; i < x + conv_size; i++)
+        {
+            if (i >= 0 and j >= 0)
+            {
+                auto ux = image.at<uchar>(x, y);
+                auto uy = image.at<uchar>(i, j);
+                double c1 = std::exp(-(std::pow(std::abs(i + j - (x + y)), 2)) / (float)std::pow(conv_size, 2));
+                double h_div = std::pow(h_param, 2);
+
+                double c2 = std::exp(-(std::pow(std::abs(uy - ux), 2)) / h_div);
+
+                rgb += uy * c1 * c2;
+
+                cnt += c1 * c2;
+            }
+        }
+    }
+    if (cnt != 0)
+    {
+        rgb /= cnt;
+    }
+    return rgb;
+}
+
+
+cv::Mat knn_grey(cv::Mat image, int conv_size, double h_param)
+{
+    auto knn_img = image.clone();
+    for (int y = 0; y < image.cols; y++)
+    {
+        for (int x = 0; x < image.rows; x++)
+        {
+           auto gc = gauss_conv_gray(image, x, y, conv_size, h_param);
+           knn_img.at<uchar>(x, y) = gc;
+        }
+    }
+    return knn_img;
+}

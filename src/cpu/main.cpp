@@ -35,7 +35,7 @@ int main(int argc, char** argv)
     }
     Mat image;
     image;
-    if (func_name == "sobel")
+    if (func_name == "edge_detect")
         image = imread(argv[1], 0);
     else
         image = imread(argv[1], CV_LOAD_IMAGE_UNCHANGED);
@@ -52,8 +52,11 @@ int main(int argc, char** argv)
         res = knn(image, stoi(argv[3]), stof(argv[4]));
     else if (func_name == "conv")
         res = convolution(image, stoi(argv[3]));
-    else if (func_name == "sobel")
-        res = conv_with_mask(image, 1);
+    else if (func_name == "edge_detect")
+    {
+        res = knn_grey(image, 2, 150.0);
+        res = conv_with_mask(res, 1);
+    }
     namedWindow("Display Window", CV_WINDOW_AUTOSIZE);
     imshow("Display Window", res);
     waitKey(0);

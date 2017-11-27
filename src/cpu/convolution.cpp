@@ -74,7 +74,7 @@ std::pair<double, double> conv_mask(cv::Mat image, int x, int y, int conv_size, 
     return std::pair<double, double>(res, d);
 }
 
-cv::Mat non_max_suppr(cv::Mat image, double *grad, double *dir, int threshold)
+cv::Mat non_max_suppr(cv::Mat& image, double *grad, double *dir, double thresh)
 {
     for (int y = 0; y < image.cols; y++)
     {
@@ -90,7 +90,7 @@ cv::Mat non_max_suppr(cv::Mat image, double *grad, double *dir, int threshold)
             {
                 double val1 = grad[(x - 1) + (y + 1) * image.rows];
                 double val2 = grad[(x + 1) + (y - 1) * image.rows];
-                if (val1 < curr_grad and val2 < curr_grad and curr_grad > 150)
+                if (val1 < curr_grad and val2 < curr_grad and curr_grad > thresh)
                     image.at<uchar>(x, y) = 255;
                 else
                     image.at<uchar>(x, y) = 0;
@@ -101,7 +101,7 @@ cv::Mat non_max_suppr(cv::Mat image, double *grad, double *dir, int threshold)
             {
                 double val1 = grad[(x - 1) + y * image.rows];
                 double val2 = grad[(x + 1) + y * image.rows];
-                if (val1 < curr_grad and val2 < curr_grad and curr_grad > 150)
+                if (val1 < curr_grad and val2 < curr_grad and curr_grad > thresh)
                     image.at<uchar>(x, y) = 255;
                 else
                     image.at<uchar>(x, y) = 0;
@@ -114,7 +114,7 @@ cv::Mat non_max_suppr(cv::Mat image, double *grad, double *dir, int threshold)
             {
                 double val1 = grad[(x - 1) + (y - 1) * image.rows];
                 double val2 = grad[(x + 1) + (y + 1) * image.rows];
-                if (val1 < curr_grad and val2 < curr_grad and curr_grad > 150)
+                if (val1 < curr_grad and val2 < curr_grad and curr_grad > thresh)
                     image.at<uchar>(x, y) = 255;
                 else
                     image.at<uchar>(x, y) = 0;
@@ -126,7 +126,7 @@ cv::Mat non_max_suppr(cv::Mat image, double *grad, double *dir, int threshold)
             {
                 double val1 = grad[x + (y - 1) * image.rows];
                 double val2 = grad[x + (y + 1) * image.rows];
-                if (val1 < curr_grad and val2 < curr_grad and curr_grad > 150)
+                if (val1 < curr_grad and val2 < curr_grad and curr_grad > thresh)
                     image.at<uchar>(x, y) = 255;
                 else
                     image.at<uchar>(x, y) = 0;
@@ -136,9 +136,81 @@ cv::Mat non_max_suppr(cv::Mat image, double *grad, double *dir, int threshold)
     return image;
 }
 
+bool hysterysis(cv::Mat& image, double *grad, double *dir, double t)
+{
+    bool changed = false;
+    for (int y = 0; y < image.cols; y++)
+    {
+        for (int x = 0; x < image.rows; x++)
+        {
+            if (image.at<uchar>(x, y) == 255)
+                continue;
+            double curr_dir = dir[x + y * image.rows];
+            double curr_grad = grad[x + y * image.rows];
+            if (22.5 <= curr_dir and curr_dir < 67.5
+                    and (x - 1) >= 0
+                    and (y + 1) < image.cols
+                    and (x + 1) < image.rows
+                    and (y - 1) >= 0)
+            {
+                double dir1 = dir[(x - 1) + (y + 1) * image.rows];
+                double dir2 = dir[(x + 1) + (y - 1) * image.rows];
+                if (((22.5 <= dir1 and dir1 < 67.5) or (22.5 <= dir2 and dir2 < 67.5)) and curr_grad > t)
+                {
+                    image.at<uchar>(x, y) = 255;
+                    changed = true;
+                }
+            }
+            else if (67.5 <= curr_dir and curr_dir < 112.5
+                    and (x - 1) >= 0
+                    and (x + 1) < image.rows)
+            {
+                double dir1 = grad[(x - 1) + y * image.rows];
+                double dir2 = grad[(x + 1) + y * image.rows];
+                if (((67.5 <= dir1 and dir1 < 112.5) or (67.5 < dir2 and dir2 < 112.5)) and curr_grad > t)
+                {
+                    image.at<uchar>(x, y) = 255;
+                    changed = true;
+                }
+            }
+            else if (112.5 <= curr_dir and curr_dir < 157.5
+                    and (x - 1) >= 0
+                    and (y - 1) >= 0
+                    and (x + 1) < image.rows
+                    and (y + 1) < image.cols)
+            {
+                double dir1 = grad[(x - 1) + (y - 1) * image.rows];
+                double dir2 = grad[(x + 1) + (y + 1) * image.rows];
+                if (((112.5 <= dir1 and dir1 < 157.5) or (112.5 <= dir2 and dir2 < 157.5)) and curr_grad > t)
+                {
+                    image.at<uchar>(x, y) = 255;
+                    changed = true;
+                }
+            }
+            else if (((0 <= curr_dir and curr_dir < 22.5)
+                    or (157.5 <= curr_dir and curr_dir <= 180.0))
+                    and (y - 1) >= 0
+                    and (y + 1) < image.cols)
+            {
+                double dir1 = grad[x + (y - 1) * image.rows];
+                double dir2 = grad[x + (y + 1) * image.rows];
+                if ((((0 <= dir1 and dir1 < 22.5) and (157.5 <= dir1 and dir1 <= 180.5))
+                    or ((0 <= dir2 and dir2 < 22.5) and (157.5 <= dir2 and dir2 <= 180.5))) and curr_grad > t)
+                {
+                    image.at<uchar>(x, y) = 255;
+                    changed = true;
+                }
+            }
+        }
+    }
+    return changed;
+}
+
 cv::Mat conv_with_mask(cv::Mat image, int conv_size)
 {
-
+    cv::Mat dst;
+    cv::Mat tmp_image;
+    double otsu_threshold = cv::threshold(image, dst, 0, 255, CV_THRESH_BINARY | CV_THRESH_OTSU);
     auto edge_image = image.clone();
     double *grad = new double[image.cols * image.rows];
     double *dir = new double[image.cols * image.rows];
@@ -153,7 +225,14 @@ cv::Mat conv_with_mask(cv::Mat image, int conv_size)
            dir[x + y * image.rows] = pair.second / 2;
         }
     }
-    edge_image = non_max_suppr(edge_image, grad, dir);
+    non_max_suppr(edge_image, grad, dir, otsu_threshold);
+    bool changed = hysterysis(edge_image, grad, dir, otsu_threshold * 0.5);
+    std::cout << changed << std::endl;
+    while (changed)
+    {
+        changed = hysterysis(edge_image, grad, dir, otsu_threshold * 0.5);
+        std::cout << changed << std::endl;
+    }
     return edge_image;
 }
 

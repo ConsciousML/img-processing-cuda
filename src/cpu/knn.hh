@@ -5,3 +5,4 @@
 #include "opencv2/highgui/highgui.hpp"
 
 cv::Mat knn(cv::Mat image, int conv_size, double h_param);
+cv::Mat knn_grey(cv::Mat image, int conv_size, double h_param);
