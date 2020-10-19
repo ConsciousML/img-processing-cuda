@@ -16,25 +16,20 @@ Then run:
 
 ## Algorithms :
 ### Non local-mean-algorithm
--https://en.wikipedia.org/wiki/Non-local_means
-usage-cpu:
+Removes the grain of an image.
+Usage:
 ```bash
-    ./main ../../../pictures/index.jpeg 3 1.2
-    ./main <Image_path> <Conv_size> <Hyper_param>
+    ./main <image_path> nlm <conv_size> <hyper_param>
 ```
 
-### Convolution
-for gpu convolution
-usage-gpu:  
+### Convolution Blurring
+Blurs an image using the convolution operator.
+Usage:
 ```bash
-    ./main ../../../pictures/lenna.jpg conv <Conv_size>
+    ./main <image_path> conv <Conv_size>
+    ./main <image_path> shared_conv <Conv_size>
 ```
-
-for gpu SHARED convolution
-usage-gpu: 
-```bash
-    ./main ../../../pictures/lenna.jpg shared_conv <Conv_size>
-```
+Use `shared_conv` for an optimized version using shared memory.
 
 ### Pixelize
 for gpu SHARED pixelize
