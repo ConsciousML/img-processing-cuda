@@ -16,8 +16,9 @@ Then run:
 
 ## Algorithms :
 ### Canny Edge Detection
-Detects the edges of an image.
 ![nlm](images/edge_detect.jpg)
+<br>
+Detects the edges of an image.
 <br>
 Usage:
 ```bash
@@ -28,6 +29,7 @@ Usage:
 ![nlm](images/nlm_results.jpg)
 <br>
 Removes the grain of an image.
+<br>
 Usage:
 ```bash
     ./main <image_path> nlm <conv_size> <hyper_param>
@@ -37,6 +39,7 @@ Usage:
 ![nlm](images/knn_results.jpg)
 <br>
 Removes the noise of an image using the KNN algorithm.
+<br>
 Usage:
 ```bash
     ./main <image_path> nlm <conv_size> <block_radius> <weight_decay>
@@ -46,6 +49,7 @@ Usage:
 ![conv_res](images/conv_res.jpg)
 <br>
 Blurs an image using the convolution operator.
+<br>
 Usage:
 ```bash
     ./main <image_path> conv <Conv_size>
@@ -57,6 +61,7 @@ Use `shared_conv` for an optimized version using shared memory.
 ![conv_res](images/pixelize.jpg)
 <br>
 Pixelizes an image.
+<br>
 Usage
 ```bash
     ./main ../../../pictures/lenna.jpg pixelize <Conv_size>
