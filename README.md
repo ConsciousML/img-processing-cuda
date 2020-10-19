@@ -1,4 +1,4 @@
-# CPU_vs_GPU_Image_Processing_Algorithms
+# Canny Edge Detection CUDA C++
 
 ## Presentation :
 This project is about benchmarking CPU vs GPU using
