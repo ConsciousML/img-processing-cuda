@@ -27,6 +27,7 @@ Then run:
 <br>
 Detects the edges of an image.
 <br>
+
 Usage:
 ```bash
     ./main <image_path> edge_detect
@@ -37,6 +38,15 @@ Usage:
 <br>
 Removes the grain of an image.
 <br>
+Benchmark:
+- Cpu:
+
+![nlm](images/bench_cpu_nlm_514.png)
+
+- Gpu:
+
+![nlm](images/bench_gpu_nlm_514.png)
+
 Usage:
 ```bash
     ./main <image_path> nlm <conv_size> <hyper_param>
@@ -47,6 +57,15 @@ Usage:
 <br>
 Removes the noise of an image using the KNN algorithm.
 <br>
+Benchmark:
+- Cpu:
+
+![nlm](images/bench_cpu_knn.png)
+
+- Gpu:
+
+![nlm](images/bench_gpu_knn.png)
+
 Usage:
 ```bash
     ./main <image_path> nlm <conv_size> <block_radius> <weight_decay>
