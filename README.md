@@ -23,6 +23,7 @@ Usage:
 ```
 
 ### Convolution Blurring
+![conv_res](images/conv_res.jpg)
 Blurs an image using the convolution operator.
 Usage:
 ```bash
