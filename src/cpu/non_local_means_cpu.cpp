@@ -4,6 +4,7 @@
 using namespace std;
 using namespace cv;
 
+// Applies a convolution given two points
 std::valarray<double> conv(Mat image, int x1, int y1, int x2, int y2, int conv_size)
 {
     std::valarray<double> rgb = {0, 0, 0};
@@ -31,6 +32,7 @@ std::valarray<double> conv(Mat image, int x1, int y1, int x2, int y2, int conv_s
     return rgb;
 }
 
+// Applies a convolution given a location and computes the nlm formula
 std::valarray<double> gauss_conv_nlm(cv::Mat image, int x, int y, int conv_size, int block_radius, double h_param)
 {
     std::valarray<double> rgb = {0, 0, 0};
@@ -72,7 +74,7 @@ std::valarray<double> gauss_conv_nlm(cv::Mat image, int x, int y, int conv_size,
     return rgb;
 }
 
-
+// Hat function for the Non Local-Means algorithm
 cv::Mat non_local_means_cpu(cv::Mat image, int conv_size, int block_radius, double h_param)
 {
     auto nlm_img = image.clone();

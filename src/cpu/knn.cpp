@@ -2,6 +2,7 @@
 #include "knn.hh"
 
 
+// Applies a gaussian convolution
 std::valarray<double> gauss_conv(cv::Mat image, int x, int y, int conv_size, double h_param)
 {
     std::valarray<double> rgb = {0, 0, 0};
@@ -44,6 +45,8 @@ std::valarray<double> gauss_conv(cv::Mat image, int x, int y, int conv_size, dou
 }
 
 
+// Hat function of the K-Nearest Neighbors algorithm
+// Removes the noise of an image
 cv::Mat knn(cv::Mat image, int conv_size, double h_param)
 {
     auto knn_img = image.clone();
@@ -61,6 +64,8 @@ cv::Mat knn(cv::Mat image, int conv_size, double h_param)
     return knn_img;
 }
 
+
+// Applies a gauss convolution given a location and a grey image
 double gauss_conv_gray(cv::Mat image, int x, int y, int conv_size, double h_param)
 {
     double rgb = 0;
@@ -93,6 +98,8 @@ double gauss_conv_gray(cv::Mat image, int x, int y, int conv_size, double h_para
 }
 
 
+// Hat function of the K-Nearest Neighbors algorithm on a grey image
+// Removes the noise of a grey image
 cv::Mat knn_grey(cv::Mat image, int conv_size, double h_param)
 {
     auto knn_img = image.clone();

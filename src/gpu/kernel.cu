@@ -15,6 +15,8 @@
 __device__ int mask1[3][3] = {{-1, -2, -1}, {0, 0, 0}, {1, 2, 1}};
 __device__ int mask2[3][3] = {{-1, 0, 1}, {-2, 0, 2}, {-1, 0, 1}};
 
+// Kernel function for the canny edge detector
+// Computes the gradient of edges and fixes broken edges
 __global__ void hysterysis(Rgb *device_img, int* changed, int width, int height, double t)
 {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
@@ -83,6 +85,7 @@ __global__ void hysterysis(Rgb *device_img, int* changed, int width, int height,
     }
 }
 
+// Classifies the gradient direction for each edges
 __global__ void non_max_suppr(Rgb *device_img, double* img, int width, int height, double thresh)
 {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
@@ -142,6 +145,7 @@ __global__ void non_max_suppr(Rgb *device_img, double* img, int width, int heigh
     }
 }
 
+// Computes a sobel convolution and compute the gradient direction
 __global__ void sobel_conv(Rgb *device_img, double* img, int width, int height, int conv_size)
 {
 
@@ -182,6 +186,7 @@ __global__ void sobel_conv(Rgb *device_img, double* img, int width, int height, 
 
 }
 
+// Applies the convolution operator on the image
 __device__ void conv(Rgb *image, Rgb& rgb, int width, int height, int x1, int y1, int x2, int y2, int conv_size)
 {
     int cnt = 0;
@@ -210,6 +215,7 @@ __device__ void conv(Rgb *image, Rgb& rgb, int width, int height, int x1, int y1
     }
 }
 
+// Applies a gaussian mask to the image
 __device__ void gauss_conv_nlm(Rgb *image, Rgb& res, int x, int y, int width, int height, int conv_size, int block_radius, double h_param)
 {
     auto cnt = Rgb(0.0, 0.0, 0.0);
@@ -247,6 +253,7 @@ __device__ void gauss_conv_nlm(Rgb *image, Rgb& res, int x, int y, int width, in
     }
 }
 
+// Non Local-Means kernel function
 __global__ void nlm(Rgb* device_img, Rgb* img, int width, int height, int conv_size, int block_radius, double h_param)
 {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
@@ -260,6 +267,9 @@ __global__ void nlm(Rgb* device_img, Rgb* img, int width, int height, int conv_s
     device_img[y * width + x].b = res.b;
 }
 
+// Shared knn kernel function
+// Uses the K-Nearest Neighbors algorithm for de-noising an image
+// Uses the shared memory optimization
 __global__ void shared_knn(Rgb* device_img, Rgb* img, int width, int height, int strel_size, double h_param)
 {
     int r = strel_size / 2;
@@ -316,6 +326,8 @@ __global__ void shared_knn(Rgb* device_img, Rgb* img, int width, int height, int
     }
 }
 
+// Shared knn kernel function
+// Uses the K-Nearest Neighbors algorithm for de-noising an image
 __device__ void gauss_conv(Rgb *image, Rgb& res, int x, int y, int width, int height, int conv_size, double h_param)
 {
     auto cnt = Rgb(0.0, 0.0, 0.0);
@@ -352,6 +364,7 @@ __device__ void gauss_conv(Rgb *image, Rgb& res, int x, int y, int width, int he
     }
 }
 
+// Hat function of the K-Nearest Neigbhors algorithm
 __global__ void knn(Rgb* device_img, Rgb* img, int width, int height, int conv_size, double h_param)
 {
     int x = blockIdx.x * blockDim.x + threadIdx.x;
@@ -365,6 +378,7 @@ __global__ void knn(Rgb* device_img, Rgb* img, int width, int height, int conv_s
     device_img[y * width + x].b = res.b;
 }
 
+// Hat function of the K-Nearest Neigbhors algorithm
 __global__ void kernel_shared_conv(Rgb* device_img, Rgb* img, int width, int height, int strel_size)
 {
     int r = strel_size / 2;
@@ -409,6 +423,8 @@ __global__ void kernel_shared_conv(Rgb* device_img, Rgb* img, int width, int hei
         }
     }
 }
+
+// Hat function for the convolution algorithm
 __global__ void kernel_conv(Rgb* device_img, Rgb* img, int rows, int cols, int conv_size)
 {
     int cnt = 0;
@@ -438,6 +454,7 @@ __global__ void kernel_conv(Rgb* device_img, Rgb* img, int rows, int cols, int c
     }
 }
 
+// Pixelizes an image
 __global__ void kernel_pixelize(Rgb* device_img, Rgb* img, int rows, int cols, int pix_size)
 {
     extern __shared__ Rgb ds_img[];

@@ -9,7 +9,6 @@ using std::chrono::duration_cast;
 using std::chrono::nanoseconds;
 using std::chrono::steady_clock;
 struct scoped_timer {
-  /* Init the timer: get the current time */
   scoped_timer(double & s, std::ofstream & f) : seconds(s), t0(steady_clock::now()),myfile(f) {
   }
 

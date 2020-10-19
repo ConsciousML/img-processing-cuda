@@ -1,7 +1,8 @@
 #include <math.h>
 #include "edge_detect.hh"
 
-
+// Applies a convolution at a given location x, y.
+// where conv_size is the size of the convolution mask
 std::valarray<double> simple_conv(cv::Mat image, int x, int y, int conv_size)
 {
     std::valarray<double> rgb = {0, 0, 0};
@@ -25,6 +26,8 @@ std::valarray<double> simple_conv(cv::Mat image, int x, int y, int conv_size)
     return rgb;
 }
 
+// Applies a convolution on an entire image
+// where conv_size is the size of the convolution mask
 cv::Mat convolution(cv::Mat image, int conv_size)
 {
     auto conv_img = image.clone();
@@ -41,6 +44,7 @@ cv::Mat convolution(cv::Mat image, int conv_size)
     return conv_img;
 }
 
+// Applies a convolution given an image, a location and a mask
 std::pair<double, double> conv_mask(cv::Mat image, int x, int y, int conv_size, int mask1[][3], int mask2[][3])
 {
     double sum1 = 0.0;
@@ -74,6 +78,7 @@ std::pair<double, double> conv_mask(cv::Mat image, int x, int y, int conv_size, 
     return std::pair<double, double>(res, d);
 }
 
+// Classifies the gradient direction for each edges
 cv::Mat non_max_suppr(cv::Mat& image, double *grad, double *dir, double thresh)
 {
     for (int y = 0; y < image.cols; y++)
@@ -136,6 +141,7 @@ cv::Mat non_max_suppr(cv::Mat& image, double *grad, double *dir, double thresh)
     return image;
 }
 
+// Computes the gradient of edges and fixes broken edges
 bool hysterysis(cv::Mat& image, double *grad, double *dir, double t)
 {
     bool changed = false;
@@ -206,6 +212,7 @@ bool hysterysis(cv::Mat& image, double *grad, double *dir, double t)
     return changed;
 }
 
+// Applies a convolution on an entire image given a convolution mask
 cv::Mat conv_with_mask(cv::Mat image, int conv_size)
 {
     cv::Mat dst;
