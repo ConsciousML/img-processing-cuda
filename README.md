@@ -1,8 +1,15 @@
 # Image Processing with CUDA C++
 
-## Presentation :
-This project is about benchmarking CPU vs GPU using
-a List of algorithms of Image processing.
+## Objective
+The objective of this project is to implement from scratch in CUDA C++ various image processing algorithms.
+A Cpu and a Gpu version of the following algorithms is implemented and commented:
+- Canny Edge Detection
+- Non Local-Means De-Noising
+- K-Nearest Neighbors De-Noising
+- Convolution Blurring
+- Pixelize
+
+We benchmarked the [Gpu](https://github.com/ConsciousML/canny-edge-cuda/blob/master/src/gpu/bench/benchs.ipynb) and [Cpu](https://github.com/ConsciousML/canny-edge-cuda/blob/master/src/cpu/bench/benchs.ipynb) version.
 
 ## Setup:
 Make sure you have a CUDA capable GPU and install cudatoolkit for your OS.
@@ -35,7 +42,7 @@ Usage:
     ./main <image_path> nlm <conv_size> <hyper_param>
 ```
 
-### K-Nearest Neighbor De-noising
+### K-Nearest Neighbors De-noising
 ![nlm](images/knn_results.jpg)
 <br>
 Removes the noise of an image using the KNN algorithm.
