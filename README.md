@@ -5,6 +5,8 @@ This project is about benchmarking CPU vs GPU using
 a List of algorithms of Image processing.
 
 ## Setup:
+Make sure you have a CUDA capable GPU and install cudatoolkit for your OS.
+Then run:
 ```bash
     cd src/gpu
     mkdir build && cd build
