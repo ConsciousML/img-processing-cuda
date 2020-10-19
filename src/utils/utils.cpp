@@ -1,10 +1,10 @@
 #include "utils.hh"
 #include <iostream>
 #include <complex>
+
+
 Mat& subDFT(Mat& I)
 {
-  // accept only char type matrices
-  //Mat I;
   CV_Assert(I.depth() == CV_8U);
   const int channels = I.channels();
   int nRows = I.rows;
@@ -33,7 +33,6 @@ Mat& subDFT(Mat& I)
         {
           cv::Vec3b* pixel = I.ptr<Vec3b>(i); // point to first pixel in row
           cv::Vec3f* pixeld = I.ptr<Vec3f>(i); // point to first pixel in row
-          //std::cout <<"hhhAAAA" << channels;
           for (int j = 0; j < nCols; ++j)
           {
             //f(pixel[j], i, j);
@@ -43,66 +42,3 @@ Mat& subDFT(Mat& I)
   }
   return I;
 }
-/*
-   Functor::Functor(Mat &img)
-   {
-   img_ = img;
-   }
-   uchar & Functor::operator()(uchar & elt, int i, int j)
-   {
-   i = i + j;
-   return elt;
-   }
-   Vec3b & Functor::operator()(Vec3b & elt, int i, int j)
-   {
-   i = i + j;
-   return elt;
-   }
-   DFT::DFT(Mat &img):Functor::Functor(img)
-   {}
-   uchar & DFT::operator()(uchar & elt, int i, int j)
-   {
-   double a = 
-   }
- */
-/*Vec3b & DFT::operator()(Vec3b & elt, int i, int j)
-  {
-  int r, g, b;
-  r = elt[2];
-  g = elt[1];
-  b = elt[0];
-
-  }*/
-/*
-   GrayScale::GrayScale(Mat img)
-   :Functor::Functor(img)
-   {
-   }*/
-/*
-   uchar & DFT:operator()(uchar & elt)
-   {
-   }*/
-/*
-   Vec3b & DFT::operator()(Vec3b & elt) 
-   {
-   }
-   uchar & GrayScale::operator()(uchar & elt)
-   {
-   return elt;
-   }
-   Vec3b & GrayScale::operator()(Vec3b & elt)
-   {
-//std::cout <<"hello\n";
-//Vec3b elt2(elt);
-int r, g, b;
-r = elt[2];
-g = elt[1];
-b = elt[0];
-int avg =     (r + g + b) / 3;
-//std::cout << avg << std::endl;
-//std::cout << r << " " << g << " " << b << std::endl;
-elt[2] = avg ;
-elt[1] = avg ;
-elt[0] = avg ;
-return elt;
-}*/

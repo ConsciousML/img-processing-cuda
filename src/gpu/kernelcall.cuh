@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <iostream>
 
+
 Rgb *img_to_device(cv::Mat img);
 Rgb *empty_img_device(cv::Mat img);
 void device_to_img(Rgb *device_img, cv::Mat& img);

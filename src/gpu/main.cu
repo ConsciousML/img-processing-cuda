@@ -5,14 +5,15 @@
 #include "opencv2/core/core.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 #include "opencv2/highgui/highgui.hpp"
-//#include "kernel.cuh"
 #include "kernelcall.cuh"
+
 #define TILE_WIDTH 16
 #define TILE_HEIGHT 16
 #define STREL_SIZE 5
 #define R (STREL_SIZE / 2)
 #define BLOCK_W (TILE_WIDTH + (2 * R))
 #define BLOCK_H (TILE_HEIGHT + (2 * R))
+
 
 int main(int argc, char** argv)
 {
@@ -34,7 +35,6 @@ int main(int argc, char** argv)
     }
     cv::Mat image;
     image = cv::imread(argv[1], CV_LOAD_IMAGE_UNCHANGED);
-    //image = cv::imread(argv[1], CV_LOAD_IMAGE_GRAYSCALE);
     if (!image.data)
     {
         std::cout << "Could not open or find the image" << std::endl;
@@ -70,10 +70,6 @@ int main(int argc, char** argv)
         kernel_nlm_host(device_dst, device_img, width, height, std::stoi(argv[3]), std::stoi(argv[4]), std::stod(argv[5]));
     else if (func_name == "edge_detect")
     {
-        /*kernel_shared_knn_host(device_dst, device_img, width, height, 2, 150.0);
-        kernel_nlm_host(device_dst, device_img, width, height, 2, 2, 100.0);
-        cudaMemcpy(out, device_dst, height * width * sizeof (Rgb), cudaMemcpyDeviceToHost);
-        device_to_img(out, image);*/
         cv::cvtColor(image, grey_img, cv::COLOR_BGR2GRAY);
         device_dst_grey = empty_img_device(grey_img);
         device_img_grey = img_to_device_grey(grey_img);

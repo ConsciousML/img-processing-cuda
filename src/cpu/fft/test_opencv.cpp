@@ -61,7 +61,5 @@ int main(int argc, char** argv)
   namedWindow("Display Window", CV_WINDOW_AUTOSIZE);
   imshow("Display Window", res);
   waitKey(0);
-
-  //  cout << a[0][0][0]  << endl;
   return 0;
 }

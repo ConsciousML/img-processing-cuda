@@ -1,6 +1,7 @@
 #include <math.h>
 #include "knn.hh"
 
+
 std::valarray<double> gauss_conv(cv::Mat image, int x, int y, int conv_size, double h_param)
 {
     std::valarray<double> rgb = {0, 0, 0};

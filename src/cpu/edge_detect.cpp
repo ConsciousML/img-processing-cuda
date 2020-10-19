@@ -1,5 +1,7 @@
 #include <math.h>
 #include "edge_detect.hh"
+`
+
 std::valarray<double> simple_conv(cv::Mat image, int x, int y, int conv_size)
 {
     std::valarray<double> rgb = {0, 0, 0};
@@ -66,8 +68,6 @@ std::pair<double, double> conv_mask(cv::Mat image, int x, int y, int conv_size, 
         u++;
         v = 0;
     }
-    //sum1 /= cnt1;
-    //sum2 /= cnt2;
     double res = sqrt(pow(sum1, 2) + pow(sum2, 2));
     double d = atan2(sum2, sum1);
     d = (d > 0 ? d : (2 * M_PI + d)) * 360 / (2 * M_PI);

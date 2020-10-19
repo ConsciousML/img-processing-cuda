@@ -1,14 +1,16 @@
 #include <iostream>
 #include <string>  
 #include <valarray>
+using namespace std;
+using namespace cv;
+
 #include "opencv2/core/core.hpp"
 #include "opencv2/imgproc/imgproc.hpp"
 #include "opencv2/highgui/highgui.hpp"
 #include "edge_detect.hh"
 #include "non_local_means_cpu.hh"
 #include "knn.hh"
-using namespace std;
-using namespace cv;
+
 
 int main(int argc, char** argv)
 {

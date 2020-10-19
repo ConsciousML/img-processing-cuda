@@ -11,10 +11,6 @@
 #define TILE_WIDTH 16
 #define TILE_HEIGHT 16
 
-//#define STREL_SIZE 5
-//#define R (STREL_SIZE / 2)
-//#define BLOCK_W (TILE_WIDTH + (2 * R))
-//#define BLOCK_H (TILE_HEIGHT + (2 * R))
 
 __device__ int mask1[3][3] = {{-1, -2, -1}, {0, 0, 0}, {1, 2, 1}};
 __device__ int mask2[3][3] = {{-1, 0, 1}, {-2, 0, 2}, {-1, 0, 1}};
@@ -167,7 +163,6 @@ __global__ void sobel_conv(Rgb *device_img, double* img, int width, int height, 
             {
                 int weight1 = mask1[u][v];
                 int weight2 = mask2[u][v];
-                //auto pix = image.at<uchar>(i, j);
                 auto pix = img[i + j * width];
                 sum1 += pix * weight1;
                 sum2 += pix * weight2;
@@ -182,7 +177,6 @@ __global__ void sobel_conv(Rgb *device_img, double* img, int width, int height, 
     double g = std::sqrt(std::pow(sum1, 2) + std::pow(sum2, 2));
     double d = atan2(sum2, sum1);
     d = (d > 0 ? d : (2 * M_PI + d)) * 360 / (2 * M_PI);
-    //device_img[x + y * width].r = img[x + y * width];
     device_img[x + y * width].g = g;
     device_img[x + y * width].b = d;
 

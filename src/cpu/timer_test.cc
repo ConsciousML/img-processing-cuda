@@ -1,6 +1,8 @@
 #include "timer.hh"
 #include <iostream>
 #include <fstream>
+
+
 int main()
 {
   double t = 1;
@@ -9,7 +11,6 @@ int main()
 
   {
     scoped_timer timer(t, myfile);
-    //do your stuff there
     long a = 0;
     for(int i = 0; i < 1000; i++)
     {
