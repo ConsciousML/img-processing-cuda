@@ -35,7 +35,6 @@ Mat& subDFT(Mat& I)
           cv::Vec3f* pixeld = I.ptr<Vec3f>(i); // point to first pixel in row
           for (int j = 0; j < nCols; ++j)
           {
-            //f(pixel[j], i, j);
           }
         }
       }

@@ -2,6 +2,7 @@
 #include "opencv2/imgproc/imgproc.hpp"
 #include "opencv2/highgui/highgui.hpp"
 
+
 struct Rgb {
     __host__ __device__ Rgb() {}
     __host__ __device__ Rgb(double x, double y, double z) : r(x), g(y), b(z) {}

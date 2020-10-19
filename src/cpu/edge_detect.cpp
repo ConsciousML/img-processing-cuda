@@ -1,6 +1,6 @@
 #include <math.h>
 #include "edge_detect.hh"
-`
+
 
 std::valarray<double> simple_conv(cv::Mat image, int x, int y, int conv_size)
 {
