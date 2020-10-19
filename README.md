@@ -41,11 +41,11 @@ Removes the grain of an image.
 Benchmark:
 - Cpu:
 
-<img src="images/bench_cpu_nlm_514.png" height="256" width="514">
+<img src="images/bench_cpu_nlm_514.png" height="256" width="414">
 
 - Gpu:
 
-<img src="images/bench_gpu_nlm_514.png" height="256" width="514">
+<img src="images/bench_gpu_nlm_514.png" height="256" width="414">
 
 Usage:
 ```bash
@@ -60,11 +60,11 @@ Removes the noise of an image using the KNN algorithm.
 Benchmark:
 - Cpu:
 
-<img src="images/bench_cpu_knn.png" height="256" width="514">
+<img src="images/bench_cpu_knn.png" height="256" width="414">
 
 - Gpu:
 
-<img src="images/bench_gpu_knn.png" height="256" width="514">
+<img src="images/bench_gpu_knn.png" height="256" width="414">
 
 Usage:
 ```bash
