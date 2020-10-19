@@ -1,4 +1,4 @@
-# Canny Edge Detection CUDA C++
+# Image Processing with CUDA C++
 
 ## Presentation :
 This project is about benchmarking CPU vs GPU using
@@ -15,11 +15,28 @@ Then run:
 ```
 
 ## Algorithms :
-### Non local-mean-algorithm
+### Canny Edge Detection
+Detects the edges of an image.
+![nlm](images/edge_detect.jpg)
+Usage:
+```bash
+    ./main <image_path> edge_detect
+```
+
+### Non Local-Means De-noising
+![nlm](images/nlm_results.jpg)
 Removes the grain of an image.
 Usage:
 ```bash
     ./main <image_path> nlm <conv_size> <hyper_param>
+```
+
+### K-Nearest Neighbor De-noising
+![nlm](images/nlm_results.jpg)
+Removes the noise of an image using the KNN algorithm.
+Usage:
+```bash
+    ./main <image_path> nlm <conv_size> <block_radius> <weight_decay>
 ```
 
 ### Convolution Blurring
@@ -33,8 +50,9 @@ Usage:
 Use `shared_conv` for an optimized version using shared memory.
 
 ### Pixelize
-for gpu SHARED pixelize
-usage-gpu:  
+![conv_res](images/pixelize.jpg)
+Pixelizes an image.
+Usage
 ```bash
     ./main ../../../pictures/lenna.jpg pixelize <Conv_size>
 ```
