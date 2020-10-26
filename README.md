@@ -78,8 +78,8 @@ Blurs an image using the convolution operator.
 <br>
 Usage:
 ```bash
-    ./main <image_path> conv <Conv_size>
-    ./main <image_path> shared_conv <Conv_size>
+    ./main <image_path> conv <conv_size>
+    ./main <image_path> shared_conv <conv_size>
 ```
 Use `shared_conv` for an optimized version using shared memory.
 
@@ -90,5 +90,5 @@ Pixelizes an image.
 <br>
 Usage
 ```bash
-    ./main ../../../pictures/lenna.jpg pixelize <Conv_size>
+    ./main <image_path> pixelize <conv_size>
 ```
